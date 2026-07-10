@@ -7,6 +7,7 @@ class TaskCard extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onRecord;
   final VoidCallback onDelete;
+  final bool isLocked;
 
   const TaskCard({
     super.key,
@@ -14,21 +15,25 @@ class TaskCard extends StatelessWidget {
     required this.onTap,
     required this.onRecord,
     required this.onDelete,
+    this.isLocked = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final s = S.of(context);
+
     // 颜色优先级：已完成→绿色，置顶→红色，默认→蓝色
     final Color color;
-    if (task.isCompleted) {
+    if (isLocked) {
+      color = isDark ? Colors.grey[700]! : Colors.grey[400]!;
+    } else if (task.isCompleted) {
       color = Colors.green;
     } else if (task.isPinned) {
       color = Colors.red;
     } else {
       color = const Color(0xFF42A5F5);
     }
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final s = S.of(context);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 6),
@@ -67,8 +72,13 @@ class TaskCard extends StatelessWidget {
                         Expanded(
                           child: Text(
                             task.title,
-                            style: const TextStyle(
-                                fontSize: 14, fontWeight: FontWeight.w600),
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: isLocked
+                                  ? (isDark ? Colors.grey[500] : Colors.grey[600])
+                                  : null,
+                            ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -146,7 +156,7 @@ class TaskCard extends StatelessWidget {
                 SizedBox(
                   height: 32,
                   child: FilledButton.tonal(
-                    onPressed: onRecord,
+                    onPressed: isLocked ? null : onRecord,
                     style: FilledButton.styleFrom(
                       backgroundColor: color.withValues(alpha: 0.15),
                       foregroundColor: color,

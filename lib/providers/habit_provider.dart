@@ -106,6 +106,11 @@ class HabitProvider extends ChangeNotifier {
     await loadHabits();
   }
 
+  Future<void> updateHabit(Habit habit, String name) async {
+    await _db.updateHabit(habit.copyWith(name: name));
+    await loadHabits();
+  }
+
   Future<void> toggleToday(String habitId) async {
     final now = DateTime.now();
     final key = _dateKey(DateTime(now.year, now.month, now.day));

@@ -48,6 +48,9 @@ class SettingsProvider extends ChangeNotifier {
   DateTime? _deadline;
   DateTime? get deadline => _deadline;
 
+  String? _deadlineReward;
+  String? get deadlineReward => _deadlineReward;
+
   List<int> _pageOrder = [0, 1, 2, 3];
   List<int> get pageOrder => _pageOrder;
 
@@ -67,6 +70,8 @@ class SettingsProvider extends ChangeNotifier {
     return diff < 0 ? 0 : diff;
   }
 
+  bool get activeTasksLocked => _deadline != null && remainingDays <= 0;
+
   /// 加载设置
   Future<void> loadSettings() async {
     // 主题
@@ -77,8 +82,15 @@ class SettingsProvider extends ChangeNotifier {
     // 截止日期
     final deadlineStr = await _db.getSetting('deadline');
     if (deadlineStr != null) {
-      _deadline =
-          DateTime.fromMillisecondsSinceEpoch(int.parse(deadlineStr));
+      if (deadlineStr.isNotEmpty) {
+        _deadline =
+            DateTime.fromMillisecondsSinceEpoch(int.parse(deadlineStr));
+      }
+    }
+
+    final rewardStr = await _db.getSetting('deadlineReward');
+    if (rewardStr != null && rewardStr.trim().isNotEmpty) {
+      _deadlineReward = rewardStr;
     }
 
     // 页面顺序
@@ -125,6 +137,23 @@ class SettingsProvider extends ChangeNotifier {
     } else {
       await _db.setSetting('deadline', '');
     }
+    notifyListeners();
+  }
+
+  Future<void> setDeadlineWithReward(DateTime date, String reward) async {
+    _deadline = date;
+    _deadlineReward = reward.trim();
+    await _db.setSetting(
+        'deadline', date.millisecondsSinceEpoch.toString());
+    await _db.setSetting('deadlineReward', _deadlineReward!);
+    notifyListeners();
+  }
+
+  Future<void> clearDeadline() async {
+    _deadline = null;
+    _deadlineReward = null;
+    await _db.setSetting('deadline', '');
+    await _db.setSetting('deadlineReward', '');
     notifyListeners();
   }
 

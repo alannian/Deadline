@@ -18,6 +18,9 @@ class S {
 
   bool get isCn => _lang == 'zh';
 
+  String get checklistMode => isCn ? '\u6e05\u5355' : 'Checklist';
+  String get planningMode => isCn ? '\u89c4\u5212\u4efb\u52a1' : 'Plan tasks';
+
   // ── 通用 ──
   String get cancel => isCn ? '取消' : 'Cancel';
   String get delete => isCn ? '删除' : 'Delete';
@@ -28,15 +31,24 @@ class S {
   String get confirmDelete => isCn ? '确认删除' : 'Confirm Delete';
 
   // ── 底部导航 ──
-  String get navTasks => isCn ? '短期任务' : 'Tasks';
-  String get navCalendar => isCn ? '日历视图' : 'Calendar';
-  String get navMemo => isCn ? '长期规划' : 'Plans';
+  String get navTasks => isCn ? '任务' : 'Tasks';
+  String get navCalendar => isCn ? '觉察' : 'Awareness';
+  String get navMemo => isCn ? '想法' : 'Ideas';
   String get navSettings => isCn ? '设置' : 'Settings';
   List<String> get navLabels => [navTasks, navCalendar, navMemo, navSettings];
 
   // ── 短期任务页 ──
   String get tasksTitle => isCn ? '短期任务' : 'Tasks';
+  String get taskPageTitle => isCn ? '任务' : 'Tasks';
   String get tapToSetDeadline => isCn ? '点击设置截止日期' : 'Tap to set deadline';
+  String get setDeadlineReward => isCn ? '设置奖励' : 'Set reward';
+  String get rewardHint => isCn ? '完成后给自己的奖励' : 'Reward for finishing';
+  String get rewardRequired => isCn ? '请先填写奖励' : 'Please enter a reward first';
+  String get reward => isCn ? '奖励' : 'Reward';
+  String get deadlineLocked => isCn
+      ? '截止天数已为 0，请重新设置截止日期和奖励后再编辑'
+      : 'Deadline is 0. Reset the deadline and reward before editing.';
+  String get totalProgress => isCn ? '总进度' : 'Total progress';
   String get daysRemaining => isCn ? '天剩余' : 'days left';
   String deadlineDate(int month, int day) =>
       isCn ? '截止 $month月$day日' : 'Due $month/$day';
@@ -63,8 +75,9 @@ class S {
   String get hideTask => isCn ? '收纳' : 'Archive';
   String get unhideTask => isCn ? '取出' : 'Unarchive';
   String get hiddenTasks => isCn ? '已收纳' : 'Archived';
-  String deleteTaskConfirm(String name) =>
-      isCn ? '确定要删除「$name」吗？所有记录也会被删除。' : 'Delete "$name"? All records will be removed.';
+  String deleteTaskConfirm(String name) => isCn
+      ? '确定要删除「$name」吗？所有记录也会被删除。'
+      : 'Delete "$name"? All records will be removed.';
   String get unitRemaining => isCn ? '剩余' : 'left';
   String unitRemainingLabel(String unit) => isCn ? '$unit剩余' : '$unit left';
   String get record => isCn ? '记录' : 'Log';
@@ -73,14 +86,17 @@ class S {
   String get saved => isCn ? '已保存' : 'Saved';
   String get selectMode => isCn ? '选择' : 'Select';
   String selectedCount(int n) => isCn ? '已选 $n 项' : '$n selected';
-  String batchDeleteConfirm(int n) =>
-      isCn ? '确定要删除选中的 $n 个任务吗？所有记录也会被删除。' : 'Delete $n selected tasks? All records will be removed.';
+  String batchDeleteConfirm(int n) => isCn
+      ? '确定要删除选中的 $n 个任务吗？所有记录也会被删除。'
+      : 'Delete $n selected tasks? All records will be removed.';
   String get donation => isCn ? '打赏' : 'Donate';
-  String get donationDesc => isCn ? '\ud83d\ude04 做的不错，赏！' : '\ud83d\ude04 Great job, take my money!';
-  String get feedbackDesc => isCn ? '\ud83d\ude23 做的好拉，来人！' : '\ud83d\ude23 This is terrible, help!';
+  String get donationDesc =>
+      isCn ? '\ud83d\ude04 做的不错，赏！' : '\ud83d\ude04 Great job, take my money!';
+  String get feedbackDesc =>
+      isCn ? '\ud83d\ude23 做的好拉，来人！' : '\ud83d\ude23 This is terrible, help!';
   String get contactTitle => isCn ? '联系作者' : 'Contact';
   // ── 日历页 ──
-  String get calendarTitle => isCn ? '日历' : 'Calendar';
+  String get calendarTitle => isCn ? '任务' : 'Tasks';
   String get overviewMode => isCn ? '总览模式' : 'Overview';
   String get dayMode => isCn ? '单日模式' : 'Day view';
   String scheduleDate(int month, int day) =>
@@ -114,13 +130,14 @@ class S {
   String get manageWorkPeriods => isCn ? '管理工作时间段' : 'Manage Work Periods';
   String get addPeriod => isCn ? '添加时间段' : 'Add Period';
   String get periodNameHint => isCn ? '名称（如：上午）' : 'Name (e.g. Morning)';
-  String get noPeriods => isCn ? '暂无时间段预设，点击下方添加' : 'No presets yet, tap below to add';
+  String get noPeriods =>
+      isCn ? '暂无时间段预设，点击下方添加' : 'No presets yet, tap below to add';
   String get quickSelect => isCn ? '快速选择' : 'Quick Select';
   String get customTime => isCn ? '自定义' : 'Custom';
   String get presetPeriods => isCn ? '时间段' : 'Presets';
 
-  // ── 长期规划页 ──
-  String get memoTitle => isCn ? '长期规划' : 'Plans';
+  // ── 想法页 ──
+  String get memoTitle => isCn ? '想法' : 'Ideas';
   String get emptyFolder => isCn ? '空文件夹' : 'Empty folder';
   String get allFiles => isCn ? '全部文件' : 'All files';
   String get newItem => isCn ? '新建' : 'New';
@@ -128,8 +145,9 @@ class S {
   String get newMemo => isCn ? '新建文件' : 'New File';
   String get folderNameHint => isCn ? '文件夹名称' : 'Folder name';
   String get rename => isCn ? '重命名' : 'Rename';
-  String deleteFolderConfirm(String name) =>
-      isCn ? '将永久删除「$name」及其所有内容，此操作不可恢复。' : 'Permanently delete "$name" and all its contents? This cannot be undone.';
+  String deleteFolderConfirm(String name) => isCn
+      ? '将永久删除「$name」及其所有内容，此操作不可恢复。'
+      : 'Permanently delete "$name" and all its contents? This cannot be undone.';
   String get renameFolder => isCn ? '重命名文件夹' : 'Rename Folder';
   String get moveTo => isCn ? '移动到...' : 'Move to...';
   String get moveToFolder => isCn ? '移动到' : 'Move to';
@@ -137,16 +155,26 @@ class S {
   String moved(String name) => isCn ? '已移动「$name」' : 'Moved "$name"';
 
   // ── 备忘录编辑页 ──
-  String get editMemo => isCn ? '编辑长期规划' : 'Edit Plan';
+  String get editMemo => isCn ? '编辑想法' : 'Edit Idea';
   String get untitled => isCn ? '无标题' : 'Untitled';
   String get startWriting => isCn ? '开始写点什么...' : 'Start writing...';
-  String get defaultMemoTitle => isCn ? '新规划' : 'New Plan';
+  String get defaultMemoTitle => isCn ? '新想法' : 'New Idea';
+
+  // ── 觉察页 ──
+  String get awarenessTitle => isCn ? '觉察' : 'Awareness';
+  String get goals => isCn ? '目标' : 'Goals';
+  String get addGoal => isCn ? '添加目标' : 'Add Goal';
+  String get editGoal => isCn ? '编辑目标' : 'Edit Goal';
+  String get goalNameHint => isCn ? '目标内容' : 'Goal';
+  String get noGoalsYet =>
+      isCn ? '还没有目标，点击 + 添加' : 'No goals yet, tap + to add';
 
   // ── 每日习惯 ──
   String get habits => isCn ? '每日习惯' : 'Daily Habits';
   String get addHabit => isCn ? '添加习惯' : 'Add Habit';
   String get habitNameHint => isCn ? '习惯名称' : 'Habit name';
-  String get noHabitsYet => isCn ? '还没有习惯，点击 + 添加' : 'No habits yet, tap + to add';
+  String get noHabitsYet =>
+      isCn ? '还没有习惯，点击 + 添加' : 'No habits yet, tap + to add';
   String get treeHealthy => isCn ? '🌳 茁壮成长' : '🌳 Thriving';
   String get treeGood => isCn ? '🌲 状态良好' : '🌲 Healthy';
   String get treeWilting => isCn ? '🌿 有些枯萎' : '🌿 Wilting';
@@ -165,14 +193,17 @@ class S {
   String get deadlineDateLabel => isCn ? 'Deadline 日期' : 'Deadline Date';
   String get notSet => isCn ? '未设置' : 'Not set';
   String get clear => isCn ? '清除' : 'Clear';
-  String deadlineInfo(int year, int month, int day, int remaining) =>
-      isCn ? '$year/$month/$day  · 还剩 $remaining 天' : '$year/$month/$day  · $remaining days left';
+  String deadlineInfo(int year, int month, int day, int remaining) => isCn
+      ? '$year/$month/$day  · 还剩 $remaining 天'
+      : '$year/$month/$day  · $remaining days left';
   String get pageOrder => isCn ? '页面顺序' : 'Page Order';
-  String get dragToReorder =>
-      isCn ? '长按拖拽来调整底部导航栏的页面顺序' : 'Long press and drag to reorder navigation tabs';
+  String get dragToReorder => isCn
+      ? '长按拖拽来调整底部导航栏的页面顺序'
+      : 'Long press and drag to reorder navigation tabs';
   String get language => isCn ? '语言' : 'Language';
   String get languageLabel => isCn ? '中文 / English' : 'English / 中文';
   String get currentLanguage => isCn ? '中文' : 'English';
   String get about => isCn ? '关于' : 'About';
-  String get appSubtitle => isCn ? '极简任务管理 · v1.0.0' : 'Minimalist Task Manager · v1.0.0';
+  String get appSubtitle =>
+      isCn ? '极简任务管理 · v1.0.0' : 'Minimalist Task Manager · v1.0.0';
 }

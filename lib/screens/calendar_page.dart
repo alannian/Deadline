@@ -1,14 +1,13 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../providers/schedule_provider.dart';
 import '../providers/task_provider.dart';
 import '../providers/settings_provider.dart';
-import '../providers/habit_provider.dart';
 import '../models/schedule.dart';
 import '../theme/app_theme.dart';
 import '../l10n/app_strings.dart';
+import 'task_list_page.dart';
 
 class CalendarPage extends StatefulWidget {
   const CalendarPage({super.key});
@@ -19,6 +18,7 @@ class CalendarPage extends StatefulWidget {
 
 class _CalendarPageState extends State<CalendarPage> {
   bool _isDayView = true; // false=总览, true=单日视图
+  bool _showChecklist = false;
 
   @override
   void initState() {
@@ -37,6 +37,12 @@ class _CalendarPageState extends State<CalendarPage> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final s = S.of(context);
 
+    if (_showChecklist) {
+      return TaskListPage(
+        onShowPlanning: () => setState(() => _showChecklist = false),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Text(s.calendarTitle),
@@ -49,68 +55,58 @@ class _CalendarPageState extends State<CalendarPage> {
           ),
           // 切换视图
           IconButton(
-            icon: Icon(_isDayView
-                ? Icons.calendar_month_rounded
-                : Icons.view_day_rounded),
+            icon: Icon(
+              _isDayView
+                  ? Icons.calendar_month_rounded
+                  : Icons.view_day_rounded,
+            ),
             tooltip: _isDayView ? s.overviewMode : s.dayMode,
             onPressed: () => setState(() => _isDayView = !_isDayView),
           ),
         ],
       ),
-      floatingActionButton: Consumer<HabitProvider>(
-        builder: (context, habitProv, _) {
-          final score = habitProv.score;
-          return SizedBox(
-            width: MediaQuery.of(context).size.width - 32,
-            height: 70,
-            child: Stack(
-              children: [
-                Align(
-                  alignment: Alignment.bottomLeft,
-                  child: habitProv.habits.isNotEmpty
-                      ? GestureDetector(
-                          onTap: () => _showHabitsManageDialog(context),
-                          child: _buildEnergyBall(
-                            score,
-                            total: habitProv.habits.length,
-                            done: habitProv.todayDoneCount,
-                          ),
-                        )
-                      : FloatingActionButton.small(
-                          heroTag: 'addHabit',
-                          tooltip: s.addHabit,
-                          onPressed: () => _showAddHabitDialog(context),
-                          child: const Icon(Icons.add_circle_outline_rounded),
-                        ),
-                ),
-                Align(
-                  alignment: Alignment.bottomRight,
-                  child: FloatingActionButton(
-                    heroTag: 'addSchedule',
-                    onPressed: () => _showCreateScheduleDialog(context),
-                    child: const Icon(Icons.add_rounded),
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      body: Consumer3<ScheduleProvider, SettingsProvider, HabitProvider>(
-        builder: (context, scheduleProv, settingsProv, habitProv, child) {
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            FloatingActionButton(
+              heroTag: 'showChecklist',
+              tooltip: s.checklistMode,
+              onPressed: () => setState(() => _showChecklist = true),
+              child: const Icon(Icons.checklist_rounded),
+            ),
+            FloatingActionButton(
+              heroTag: 'addSchedule',
+              onPressed: () => _showCreateScheduleDialog(context),
+              child: const Icon(Icons.add_rounded),
+            ),
+          ],
+        ),
+      ),
+      body: Consumer2<ScheduleProvider, SettingsProvider>(
+        builder: (context, scheduleProv, settingsProv, child) {
           return _isDayView
               ? _buildDayView(context, scheduleProv, isDark)
               : _buildOverviewWithCalendar(
-                  context, scheduleProv, settingsProv, isDark);
+                  context,
+                  scheduleProv,
+                  settingsProv,
+                  isDark,
+                );
         },
       ),
     );
   }
 
   // =========== 总览模式（日历 + 当日列表） ===========
-  Widget _buildOverviewWithCalendar(BuildContext context,
-      ScheduleProvider provider, SettingsProvider settings, bool isDark) {
+  Widget _buildOverviewWithCalendar(
+    BuildContext context,
+    ScheduleProvider provider,
+    SettingsProvider settings,
+    bool isDark,
+  ) {
     final s = S.of(context);
     final deadline = settings.deadline;
     DateTime focusedDay = provider.selectedDate;
@@ -123,17 +119,22 @@ class _CalendarPageState extends State<CalendarPage> {
           focusedDay: focusedDay,
           calendarFormat: CalendarFormat.month,
           locale: 'zh_CN',
-          selectedDayPredicate: (day) =>
-              isSameDay(day, provider.selectedDate),
+          selectedDayPredicate: (day) => isSameDay(day, provider.selectedDate),
           onDaySelected: (selectedDay, focused) {
             provider.selectDate(selectedDay);
           },
           enabledDayPredicate: deadline != null
               ? (day) {
-                  final today = DateTime(DateTime.now().year,
-                      DateTime.now().month, DateTime.now().day);
+                  final today = DateTime(
+                    DateTime.now().year,
+                    DateTime.now().month,
+                    DateTime.now().day,
+                  );
                   final dl = DateTime(
-                      deadline.year, deadline.month, deadline.day);
+                    deadline.year,
+                    deadline.month,
+                    deadline.day,
+                  );
                   return !day.isBefore(today) && !day.isAfter(dl);
                 }
               : null,
@@ -159,7 +160,8 @@ class _CalendarPageState extends State<CalendarPage> {
             markerSize: 6,
             markersMaxCount: 3,
             disabledTextStyle: TextStyle(
-                color: isDark ? Colors.grey[800] : Colors.grey[400]),
+              color: isDark ? Colors.grey[800] : Colors.grey[400],
+            ),
           ),
           headerStyle: const HeaderStyle(
             formatButtonVisible: false,
@@ -173,15 +175,23 @@ class _CalendarPageState extends State<CalendarPage> {
           child: Row(
             children: [
               Text(
-                s.scheduleDate(provider.selectedDate.month, provider.selectedDate.day),
+                s.scheduleDate(
+                  provider.selectedDate.month,
+                  provider.selectedDate.day,
+                ),
                 style: const TextStyle(
-                    fontSize: 16, fontWeight: FontWeight.w600),
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               const Spacer(),
-              Text(s.itemCount(provider.daySchedules.length),
-                  style: TextStyle(
-                      color: isDark ? Colors.grey[500] : Colors.grey[600],
-                      fontSize: 14)),
+              Text(
+                s.itemCount(provider.daySchedules.length),
+                style: TextStyle(
+                  color: isDark ? Colors.grey[500] : Colors.grey[600],
+                  fontSize: 14,
+                ),
+              ),
             ],
           ),
         ),
@@ -192,16 +202,18 @@ class _CalendarPageState extends State<CalendarPage> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.event_available_rounded,
-                          size: 48,
-                          color:
-                              isDark ? Colors.grey[700] : Colors.grey[400]),
+                      Icon(
+                        Icons.event_available_rounded,
+                        size: 48,
+                        color: isDark ? Colors.grey[700] : Colors.grey[400],
+                      ),
                       const SizedBox(height: 8),
-                      Text(s.noSchedule,
-                          style: TextStyle(
-                              color: isDark
-                                  ? Colors.grey[600]
-                                  : Colors.grey[500])),
+                      Text(
+                        s.noSchedule,
+                        style: TextStyle(
+                          color: isDark ? Colors.grey[600] : Colors.grey[500],
+                        ),
+                      ),
                     ],
                   ),
                 )
@@ -210,7 +222,10 @@ class _CalendarPageState extends State<CalendarPage> {
                   itemCount: provider.daySchedules.length,
                   itemBuilder: (context, index) {
                     return _buildScheduleItem(
-                        context, provider.daySchedules[index], isDark);
+                      context,
+                      provider.daySchedules[index],
+                      isDark,
+                    );
                   },
                 ),
         ),
@@ -220,7 +235,10 @@ class _CalendarPageState extends State<CalendarPage> {
 
   // =========== 单日视图（时间轴） ===========
   Widget _buildDayView(
-      BuildContext context, ScheduleProvider provider, bool isDark) {
+    BuildContext context,
+    ScheduleProvider provider,
+    bool isDark,
+  ) {
     final s = S.of(context);
     return Column(
       children: [
@@ -233,8 +251,9 @@ class _CalendarPageState extends State<CalendarPage> {
               IconButton(
                 icon: const Icon(Icons.chevron_left_rounded),
                 onPressed: () {
-                  final prev = provider.selectedDate
-                      .subtract(const Duration(days: 1));
+                  final prev = provider.selectedDate.subtract(
+                    const Duration(days: 1),
+                  );
                   provider.selectDate(prev);
                 },
               ),
@@ -249,16 +268,23 @@ class _CalendarPageState extends State<CalendarPage> {
                   if (picked != null) provider.selectDate(picked);
                 },
                 child: Text(
-                  s.fullDate(provider.selectedDate.year, provider.selectedDate.month, provider.selectedDate.day),
+                  s.fullDate(
+                    provider.selectedDate.year,
+                    provider.selectedDate.month,
+                    provider.selectedDate.day,
+                  ),
                   style: const TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.w600),
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
               IconButton(
                 icon: const Icon(Icons.chevron_right_rounded),
                 onPressed: () {
-                  final next =
-                      provider.selectedDate.add(const Duration(days: 1));
+                  final next = provider.selectedDate.add(
+                    const Duration(days: 1),
+                  );
                   provider.selectDate(next);
                 },
               ),
@@ -270,10 +296,12 @@ class _CalendarPageState extends State<CalendarPage> {
         Expanded(
           child: provider.daySchedules.isEmpty
               ? Center(
-                  child: Text(s.noScheduleToday,
-                      style: TextStyle(
-                          color:
-                              isDark ? Colors.grey[600] : Colors.grey[500])),
+                  child: Text(
+                    s.noScheduleToday,
+                    style: TextStyle(
+                      color: isDark ? Colors.grey[600] : Colors.grey[500],
+                    ),
+                  ),
                 )
               : ListView.builder(
                   padding: const EdgeInsets.all(16),
@@ -281,8 +309,12 @@ class _CalendarPageState extends State<CalendarPage> {
                   itemBuilder: (context, index) {
                     final schedule = provider.daySchedules[index];
                     return _buildTimelineItem(
-                        context, schedule, isDark, index == 0,
-                        index == provider.daySchedules.length - 1);
+                      context,
+                      schedule,
+                      isDark,
+                      index == 0,
+                      index == provider.daySchedules.length - 1,
+                    );
                   },
                 ),
         ),
@@ -290,8 +322,13 @@ class _CalendarPageState extends State<CalendarPage> {
     );
   }
 
-  Widget _buildTimelineItem(BuildContext context, Schedule schedule,
-      bool isDark, bool isFirst, bool isLast) {
+  Widget _buildTimelineItem(
+    BuildContext context,
+    Schedule schedule,
+    bool isDark,
+    bool isFirst,
+    bool isLast,
+  ) {
     final s = S.of(context);
     final color = Color(schedule.colorValue);
     final duration = schedule.durationMinutes;
@@ -306,15 +343,21 @@ class _CalendarPageState extends State<CalendarPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(schedule.startTimeStr,
-                    style: const TextStyle(
-                        fontSize: 14, fontWeight: FontWeight.w600)),
+                Text(
+                  schedule.startTimeStr,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 if (duration > 0)
-                  Text(schedule.endTimeStr,
-                      style: TextStyle(
-                          fontSize: 12,
-                          color:
-                              isDark ? Colors.grey[500] : Colors.grey[600])),
+                  Text(
+                    schedule.endTimeStr,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDark ? Colors.grey[500] : Colors.grey[600],
+                    ),
+                  ),
               ],
             ),
           ),
@@ -325,8 +368,7 @@ class _CalendarPageState extends State<CalendarPage> {
               Container(
                 width: 10,
                 height: 10,
-                decoration: BoxDecoration(
-                    color: color, shape: BoxShape.circle),
+                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
               ),
               if (!isLast)
                 Expanded(
@@ -369,21 +411,28 @@ class _CalendarPageState extends State<CalendarPage> {
                             ),
                           ),
                           if (schedule.isCompleted)
-                            const Icon(Icons.check_circle_rounded,
-                                color: AppTheme.successColor, size: 20),
+                            const Icon(
+                              Icons.check_circle_rounded,
+                              color: AppTheme.successColor,
+                              size: 20,
+                            ),
                         ],
                       ),
                       if (schedule.plannedAmount != null) ...[
                         const SizedBox(height: 4),
                         Text(
                           schedule.completedAmount != null
-                              ? s.planAndDone(_formatAmount(schedule.plannedAmount!), _formatAmount(schedule.completedAmount!))
-                              : s.planned(_formatAmount(schedule.plannedAmount!)),
+                              ? s.planAndDone(
+                                  _formatAmount(schedule.plannedAmount!),
+                                  _formatAmount(schedule.completedAmount!),
+                                )
+                              : s.planned(
+                                  _formatAmount(schedule.plannedAmount!),
+                                ),
                           style: TextStyle(
-                              fontSize: 12,
-                              color: isDark
-                                  ? Colors.grey[500]
-                                  : Colors.grey[600]),
+                            fontSize: 12,
+                            color: isDark ? Colors.grey[500] : Colors.grey[600],
+                          ),
                         ),
                       ],
                     ],
@@ -398,7 +447,10 @@ class _CalendarPageState extends State<CalendarPage> {
   }
 
   Widget _buildScheduleItem(
-      BuildContext context, Schedule schedule, bool isDark) {
+    BuildContext context,
+    Schedule schedule,
+    bool isDark,
+  ) {
     final s = S.of(context);
     final color = Color(schedule.colorValue);
     return Dismissible(
@@ -430,15 +482,20 @@ class _CalendarPageState extends State<CalendarPage> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(schedule.startTimeStr,
-                        style: const TextStyle(
-                            fontSize: 15, fontWeight: FontWeight.w600)),
-                    Text(schedule.endTimeStr,
-                        style: TextStyle(
-                            fontSize: 13,
-                            color: isDark
-                                ? Colors.grey[500]
-                                : Colors.grey[600])),
+                    Text(
+                      schedule.startTimeStr,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      schedule.endTimeStr,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: isDark ? Colors.grey[500] : Colors.grey[600],
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(width: 12),
@@ -446,8 +503,9 @@ class _CalendarPageState extends State<CalendarPage> {
                   width: 3,
                   height: 40,
                   decoration: BoxDecoration(
-                      color: color,
-                      borderRadius: BorderRadius.circular(2)),
+                    color: color,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -461,26 +519,26 @@ class _CalendarPageState extends State<CalendarPage> {
                           decoration: schedule.isCompleted
                               ? TextDecoration.lineThrough
                               : null,
-                          color: schedule.isCompleted
-                              ? Colors.grey
-                              : null,
+                          color: schedule.isCompleted ? Colors.grey : null,
                         ),
                       ),
                       if (schedule.plannedAmount != null)
                         Text(
                           s.planned(_formatAmount(schedule.plannedAmount!)),
                           style: TextStyle(
-                              fontSize: 12,
-                              color: isDark
-                                  ? Colors.grey[500]
-                                  : Colors.grey[600]),
+                            fontSize: 12,
+                            color: isDark ? Colors.grey[500] : Colors.grey[600],
+                          ),
                         ),
                     ],
                   ),
                 ),
                 if (schedule.isCompleted)
-                  const Icon(Icons.check_circle_rounded,
-                      color: AppTheme.successColor, size: 22),
+                  const Icon(
+                    Icons.check_circle_rounded,
+                    color: AppTheme.successColor,
+                    size: 22,
+                  ),
               ],
             ),
           ),
@@ -501,9 +559,7 @@ class _CalendarPageState extends State<CalendarPage> {
       _showCompleteWithAmountDialog(context, schedule);
     } else {
       // 独立事项直接标记完成
-      context
-          .read<ScheduleProvider>()
-          .completeSchedule(schedule);
+      context.read<ScheduleProvider>().completeSchedule(schedule);
     }
   }
 
@@ -513,8 +569,7 @@ class _CalendarPageState extends State<CalendarPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(schedule.title),
-        content: Text(
-            '${schedule.startTimeStr} - ${schedule.endTimeStr}'),
+        content: Text('${schedule.startTimeStr} - ${schedule.endTimeStr}'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -522,26 +577,23 @@ class _CalendarPageState extends State<CalendarPage> {
           ),
           TextButton(
             onPressed: () {
-              context
-                  .read<ScheduleProvider>()
-                  .deleteSchedule(schedule.id);
+              context.read<ScheduleProvider>().deleteSchedule(schedule.id);
               Navigator.pop(ctx);
             },
-            child: Text(s.delete,
-                style: const TextStyle(color: Colors.red)),
+            child: Text(s.delete, style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),
     );
   }
 
-  void _showCompleteWithAmountDialog(
-      BuildContext context, Schedule schedule) {
+  void _showCompleteWithAmountDialog(BuildContext context, Schedule schedule) {
     final s = S.read(context);
     final amountCtrl = TextEditingController(
-        text: schedule.plannedAmount != null
-            ? _formatAmount(schedule.plannedAmount!)
-            : '');
+      text: schedule.plannedAmount != null
+          ? _formatAmount(schedule.plannedAmount!)
+          : '',
+    );
 
     showDialog(
       context: context,
@@ -550,8 +602,7 @@ class _CalendarPageState extends State<CalendarPage> {
         content: TextField(
           controller: amountCtrl,
           autofocus: true,
-          keyboardType:
-              const TextInputType.numberWithOptions(decimal: true),
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
           decoration: InputDecoration(hintText: s.actualAmountHint),
         ),
         actions: [
@@ -567,10 +618,13 @@ class _CalendarPageState extends State<CalendarPage> {
 
               if (amount != null && amount > 0 && schedule.taskId != null) {
                 context.read<TaskProvider>().recordCompletion(
-                      taskId: schedule.taskId!,
-                      amount: amount,
-                      note: s.calendarNote(schedule.startTimeStr, schedule.endTimeStr),
-                    );
+                  taskId: schedule.taskId!,
+                  amount: amount,
+                  note: s.calendarNote(
+                    schedule.startTimeStr,
+                    schedule.endTimeStr,
+                  ),
+                );
               }
               Navigator.pop(ctx);
             },
@@ -599,8 +653,10 @@ class _CalendarPageState extends State<CalendarPage> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) {
           final selectedTask = selectedTaskId != null
-              ? tasks.firstWhere((t) => t.id == selectedTaskId,
-                  orElse: () => tasks.first)
+              ? tasks.firstWhere(
+                  (t) => t.id == selectedTaskId,
+                  orElse: () => tasks.first,
+                )
               : null;
 
           return AlertDialog(
@@ -612,34 +668,42 @@ class _CalendarPageState extends State<CalendarPage> {
                 children: [
                   // 关联任务选择
                   if (tasks.isNotEmpty) ...[
-                    Text(s.linkTask,
-                        style: const TextStyle(fontSize: 13)),
+                    Text(s.linkTask, style: const TextStyle(fontSize: 13)),
                     const SizedBox(height: 4),
                     DropdownButtonFormField<String?>(
                       initialValue: selectedTaskId,
                       isExpanded: true,
                       decoration: const InputDecoration(
-                          contentPadding: EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 10)),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                      ),
                       items: [
                         DropdownMenuItem(
-                            value: null, child: Text(s.independent)),
-                        ...tasks.map((t) => DropdownMenuItem(
-                              value: t.id,
-                              child: Text(
-                                s.taskRemaining(t.title, _formatAmount(t.remainingAmount), t.unit),
-                                overflow: TextOverflow.ellipsis,
+                          value: null,
+                          child: Text(s.independent),
+                        ),
+                        ...tasks.map(
+                          (t) => DropdownMenuItem(
+                            value: t.id,
+                            child: Text(
+                              s.taskRemaining(
+                                t.title,
+                                _formatAmount(t.remainingAmount),
+                                t.unit,
                               ),
-                            )),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ),
                       ],
                       onChanged: (val) {
                         setDialogState(() {
                           selectedTaskId = val;
                           if (val != null) {
-                            final t =
-                                tasks.firstWhere((t) => t.id == val);
+                            final t = tasks.firstWhere((t) => t.id == val);
                             titleCtrl.text = t.title;
-
                           }
                         });
                       },
@@ -649,7 +713,9 @@ class _CalendarPageState extends State<CalendarPage> {
                   // 标题
                   TextField(
                     controller: titleCtrl,
-                    decoration: InputDecoration(hintText: s.scheduleContentHint),
+                    decoration: InputDecoration(
+                      hintText: s.scheduleContentHint,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   // 计划量（仅关联任务时）
@@ -657,7 +723,8 @@ class _CalendarPageState extends State<CalendarPage> {
                     TextField(
                       controller: amountCtrl,
                       keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true),
+                        decimal: true,
+                      ),
                       decoration: InputDecoration(
                         hintText: s.plannedAmountHint,
                         suffixText: selectedTask.unit,
@@ -672,9 +739,13 @@ class _CalendarPageState extends State<CalendarPage> {
                       child: SegmentedButton<bool>(
                         segments: [
                           ButtonSegment(
-                              value: false, label: Text(s.customTime)),
+                            value: false,
+                            label: Text(s.customTime),
+                          ),
                           ButtonSegment(
-                              value: true, label: Text(s.presetPeriods)),
+                            value: true,
+                            label: Text(s.presetPeriods),
+                          ),
                         ],
                         selected: {usePresets},
                         onSelectionChanged: (set) {
@@ -692,7 +763,9 @@ class _CalendarPageState extends State<CalendarPage> {
                           child: InkWell(
                             onTap: () async {
                               final t = await showTimePicker(
-                                  context: ctx, initialTime: startTime);
+                                context: ctx,
+                                initialTime: startTime,
+                              );
                               if (t != null) {
                                 setDialogState(() => startTime = t);
                               }
@@ -700,14 +773,15 @@ class _CalendarPageState extends State<CalendarPage> {
                             child: Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: Theme.of(context)
-                                    .inputDecorationTheme
-                                    .fillColor,
+                                color: Theme.of(
+                                  context,
+                                ).inputDecorationTheme.fillColor,
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
-                                  s.startTime(startTime.format(ctx)),
-                                  textAlign: TextAlign.center),
+                                s.startTime(startTime.format(ctx)),
+                                textAlign: TextAlign.center,
+                              ),
                             ),
                           ),
                         ),
@@ -716,7 +790,9 @@ class _CalendarPageState extends State<CalendarPage> {
                           child: InkWell(
                             onTap: () async {
                               final t = await showTimePicker(
-                                  context: ctx, initialTime: endTime);
+                                context: ctx,
+                                initialTime: endTime,
+                              );
                               if (t != null) {
                                 setDialogState(() => endTime = t);
                               }
@@ -724,14 +800,15 @@ class _CalendarPageState extends State<CalendarPage> {
                             child: Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: Theme.of(context)
-                                    .inputDecorationTheme
-                                    .fillColor,
+                                color: Theme.of(
+                                  context,
+                                ).inputDecorationTheme.fillColor,
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
-                                  s.endTime(endTime.format(ctx)),
-                                  textAlign: TextAlign.center),
+                                s.endTime(endTime.format(ctx)),
+                                textAlign: TextAlign.center,
+                              ),
                             ),
                           ),
                         ),
@@ -747,8 +824,10 @@ class _CalendarPageState extends State<CalendarPage> {
                         final p = periods[i];
                         final sel = selectedPresets.contains(i);
                         return FilterChip(
-                          label: Text('${p.name}  ${p.startStr}-${p.endStr}',
-                              style: const TextStyle(fontSize: 13)),
+                          label: Text(
+                            '${p.name}  ${p.startStr}-${p.endStr}',
+                            style: const TextStyle(fontSize: 13),
+                          ),
                           selected: sel,
                           showCheckmark: true,
                           onSelected: (val) {
@@ -801,8 +880,7 @@ class _CalendarPageState extends State<CalendarPage> {
                       taskId: selectedTaskId,
                       title: title,
                       date: date,
-                      startMinutes:
-                          startTime.hour * 60 + startTime.minute,
+                      startMinutes: startTime.hour * 60 + startTime.minute,
                       endMinutes: endTime.hour * 60 + endTime.minute,
                       colorValue: 0xFF42A5F5,
                       plannedAmount: planned,
@@ -838,8 +916,13 @@ class _CalendarPageState extends State<CalendarPage> {
                     if (periods.isEmpty)
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 16),
-                        child: Text(s.noPeriods,
-                            style: TextStyle(color: Colors.grey[500], fontSize: 13)),
+                        child: Text(
+                          s.noPeriods,
+                          style: TextStyle(
+                            color: Colors.grey[500],
+                            fontSize: 13,
+                          ),
+                        ),
                       )
                     else
                       ...List.generate(periods.length, (i) {
@@ -850,9 +933,15 @@ class _CalendarPageState extends State<CalendarPage> {
                           title: Text(p.name),
                           subtitle: Text('${p.startStr} - ${p.endStr}'),
                           trailing: IconButton(
-                            icon: const Icon(Icons.remove_circle_outline, size: 20, color: Colors.red),
+                            icon: const Icon(
+                              Icons.remove_circle_outline,
+                              size: 20,
+                              color: Colors.red,
+                            ),
                             onPressed: () {
-                              context.read<SettingsProvider>().removeTimePeriod(i);
+                              context.read<SettingsProvider>().removeTimePeriod(
+                                i,
+                              );
                               setDialogState(() {});
                             },
                           ),
@@ -867,7 +956,8 @@ class _CalendarPageState extends State<CalendarPage> {
                   child: Text(s.ok),
                 ),
                 TextButton(
-                  onPressed: () => _showAddPeriodDialog(context, setDialogState),
+                  onPressed: () =>
+                      _showAddPeriodDialog(context, setDialogState),
                   child: Text(s.addPeriod),
                 ),
               ],
@@ -878,7 +968,10 @@ class _CalendarPageState extends State<CalendarPage> {
     );
   }
 
-  void _showAddPeriodDialog(BuildContext context, void Function(void Function()) parentSetState) {
+  void _showAddPeriodDialog(
+    BuildContext context,
+    void Function(void Function()) parentSetState,
+  ) {
     final s = S.read(context);
     final nameCtrl = TextEditingController();
     TimeOfDay start = const TimeOfDay(hour: 9, minute: 0);
@@ -902,16 +995,24 @@ class _CalendarPageState extends State<CalendarPage> {
                   Expanded(
                     child: InkWell(
                       onTap: () async {
-                        final t = await showTimePicker(context: ctx, initialTime: start);
+                        final t = await showTimePicker(
+                          context: ctx,
+                          initialTime: start,
+                        );
                         if (t != null) setDialogState(() => start = t);
                       },
                       child: Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Theme.of(context).inputDecorationTheme.fillColor,
+                          color: Theme.of(
+                            context,
+                          ).inputDecorationTheme.fillColor,
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Text(s.startTime(start.format(ctx)), textAlign: TextAlign.center),
+                        child: Text(
+                          s.startTime(start.format(ctx)),
+                          textAlign: TextAlign.center,
+                        ),
                       ),
                     ),
                   ),
@@ -919,16 +1020,24 @@ class _CalendarPageState extends State<CalendarPage> {
                   Expanded(
                     child: InkWell(
                       onTap: () async {
-                        final t = await showTimePicker(context: ctx, initialTime: end);
+                        final t = await showTimePicker(
+                          context: ctx,
+                          initialTime: end,
+                        );
                         if (t != null) setDialogState(() => end = t);
                       },
                       child: Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Theme.of(context).inputDecorationTheme.fillColor,
+                          color: Theme.of(
+                            context,
+                          ).inputDecorationTheme.fillColor,
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Text(s.endTime(end.format(ctx)), textAlign: TextAlign.center),
+                        child: Text(
+                          s.endTime(end.format(ctx)),
+                          textAlign: TextAlign.center,
+                        ),
                       ),
                     ),
                   ),
@@ -944,11 +1053,13 @@ class _CalendarPageState extends State<CalendarPage> {
             TextButton(
               onPressed: () {
                 if (nameCtrl.text.trim().isEmpty) return;
-                context.read<SettingsProvider>().addTimePeriod(TimePeriod(
-                  name: nameCtrl.text.trim(),
-                  startMinutes: start.hour * 60 + start.minute,
-                  endMinutes: end.hour * 60 + end.minute,
-                ));
+                context.read<SettingsProvider>().addTimePeriod(
+                  TimePeriod(
+                    name: nameCtrl.text.trim(),
+                    startMinutes: start.hour * 60 + start.minute,
+                    endMinutes: end.hour * 60 + end.minute,
+                  ),
+                );
                 parentSetState(() {});
                 Navigator.pop(ctx);
               },
@@ -965,317 +1076,4 @@ class _CalendarPageState extends State<CalendarPage> {
         ? amount.toInt().toString()
         : amount.toStringAsFixed(1);
   }
-
-  // =========== 能量球 ===========
-
-  Widget _buildEnergyBall(double score,
-      {required int total, required int done}) {
-    final int remaining = total - done;
-    final double progress = total > 0 ? done / total : 1.0;
-
-    // 颜色随分数变化：红(<40) → 橙(40-55) → 蓝(55-70) → 绿(70-85) → 金(>85)
-    final Color coreColor;
-    if (score < 40) {
-      coreColor = const Color(0xFFEF5350);
-    } else if (score < 55) {
-      coreColor = const Color(0xFFFF9800);
-    } else if (score < 70) {
-      coreColor = const Color(0xFF42A5F5);
-    } else if (score < 85) {
-      coreColor = const Color(0xFF66BB6A);
-    } else {
-      coreColor = const Color(0xFFFFD54F);
-    }
-
-    return SizedBox(
-      width: 62,
-      height: 62,
-      child: CustomPaint(
-        painter: _EnergyRingPainter(
-          progress: progress,
-          ringColor: coreColor,
-        ),
-        child: Center(
-          child: Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: RadialGradient(
-                colors: [
-                  coreColor.withValues(alpha: 0.95),
-                  coreColor.withValues(alpha: 0.55),
-                  coreColor.withValues(alpha: 0.2),
-                ],
-                stops: const [0.0, 0.6, 1.0],
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: coreColor.withValues(alpha: 0.4),
-                  blurRadius: 12,
-                  spreadRadius: 1,
-                ),
-              ],
-            ),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                // 高光
-                Positioned(
-                  top: 6,
-                  left: 8,
-                  child: Container(
-                    width: 14,
-                    height: 10,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                      gradient: RadialGradient(
-                        colors: [
-                          Colors.white.withValues(alpha: 0.45),
-                          Colors.transparent,
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                // 分数 + 剩余数
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      score.toStringAsFixed(1),
-                      style: TextStyle(
-                        fontSize: score.abs() >= 100 ? 9 : 11,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        height: 1.1,
-                        shadows: [
-                          Shadow(
-                            color: Colors.black.withValues(alpha: 0.3),
-                            blurRadius: 4,
-                          ),
-                        ],
-                      ),
-                    ),
-                    if (remaining > 0)
-                      Text(
-                        '-$remaining',
-                        style: TextStyle(
-                          fontSize: 9,
-                          color: Colors.white.withValues(alpha: 0.85),
-                          fontWeight: FontWeight.w500,
-                          height: 1.1,
-                        ),
-                      )
-                    else
-                      Icon(
-                        Icons.check_rounded,
-                        size: 12,
-                        color: Colors.white.withValues(alpha: 0.9),
-                      ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // =========== 习惯管理弹窗 ===========
-
-  void _showHabitsManageDialog(BuildContext context) {
-    final s = S.read(context);
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (ctx) {
-        return Consumer<HabitProvider>(
-          builder: (ctx, habitProv, _) {
-            return DraggableScrollableSheet(
-              expand: false,
-              initialChildSize: 0.5,
-              minChildSize: 0.3,
-              maxChildSize: 0.8,
-              builder: (ctx, scrollCtrl) {
-                return Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                      child: Row(
-                        children: [
-                          Text(s.habits,
-                              style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold)),
-                          const Spacer(),
-                          IconButton(
-                            icon: const Icon(Icons.add_circle_outline_rounded),
-                            onPressed: () {
-                              Navigator.pop(ctx);
-                              _showAddHabitDialog(context);
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Divider(height: 1),
-                    if (habitProv.habits.isEmpty)
-                      Expanded(
-                        child: Center(
-                          child: Text(s.noHabitsYet,
-                              style: TextStyle(color: Colors.grey[500])),
-                        ),
-                      )
-                    else
-                      Expanded(
-                        child: ListView.builder(
-                          controller: scrollCtrl,
-                          itemCount: habitProv.habits.length,
-                          itemBuilder: (ctx, i) {
-                            final habit = habitProv.habits[i];
-                            final done = habitProv.todayCompletions
-                                .containsKey(habit.id);
-                            return ListTile(
-                              leading: IconButton(
-                                icon: Icon(
-                                  done
-                                      ? Icons.check_circle_rounded
-                                      : Icons.radio_button_unchecked_rounded,
-                                  color: done
-                                      ? const Color(0xFF4CAF50)
-                                      : Colors.grey,
-                                ),
-                                onPressed: () =>
-                                    habitProv.toggleToday(habit.id),
-                              ),
-                              title: Text(
-                                habit.name,
-                                style: TextStyle(
-                                  decoration: done
-                                      ? TextDecoration.lineThrough
-                                      : null,
-                                  color: done ? Colors.grey : null,
-                                ),
-                              ),
-                              trailing: IconButton(
-                                icon: Icon(Icons.delete_outline_rounded,
-                                    size: 20, color: Colors.red[300]),
-                                onPressed: () {
-                                  Navigator.pop(ctx);
-                                  _confirmDeleteHabit(context, habit);
-                                },
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                  ],
-                );
-              },
-            );
-          },
-        );
-      },
-    );
-  }
-
-  void _showAddHabitDialog(BuildContext context) {
-    final s = S.read(context);
-    final ctrl = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(s.addHabit),
-        content: TextField(
-          controller: ctrl,
-          autofocus: true,
-          decoration: InputDecoration(hintText: s.habitNameHint),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(s.cancel),
-          ),
-          TextButton(
-            onPressed: () {
-              final name = ctrl.text.trim();
-              if (name.isNotEmpty) {
-                context.read<HabitProvider>().addHabit(name);
-                Navigator.pop(ctx);
-              }
-            },
-            child: Text(s.add),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _confirmDeleteHabit(BuildContext context, dynamic habit) {
-    final s = S.read(context);
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(s.confirmDelete),
-        content: Text(s.deleteTaskConfirm(habit.name)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(s.cancel),
-          ),
-          TextButton(
-            onPressed: () {
-              context.read<HabitProvider>().removeHabit(habit.id);
-              Navigator.pop(ctx);
-            },
-            child: Text(s.delete, style: const TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );  
-  }
-}
-
-/// 能量球外圈进度环
-class _EnergyRingPainter extends CustomPainter {
-  final double progress; // 0.0 ~ 1.0
-  final Color ringColor;
-
-  _EnergyRingPainter({required this.progress, required this.ringColor});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2 - 3;
-
-    // 背景环
-    final bgPaint = Paint()
-      ..color = ringColor.withValues(alpha: 0.15)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3.5;
-    canvas.drawCircle(center, radius, bgPaint);
-
-    // 进度环
-    if (progress > 0) {
-      final fgPaint = Paint()
-        ..color = ringColor
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 3.5
-        ..strokeCap = StrokeCap.round;
-      final sweepAngle = 2 * pi * progress;
-      canvas.drawArc(
-        Rect.fromCircle(center: center, radius: radius),
-        -pi / 2,
-        sweepAngle,
-        false,
-        fgPaint,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _EnergyRingPainter old) =>
-      old.progress != progress || old.ringColor != ringColor;
 }

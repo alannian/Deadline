@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/settings_provider.dart';
 import '../l10n/app_strings.dart';
-import 'task_list_page.dart';
 import 'calendar_page.dart';
+import 'awareness_page.dart';
 import 'memo_page.dart';
 import 'settings_page.dart';
 
@@ -18,15 +18,15 @@ class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
 
   static const _pages = <Widget>[
-    TaskListPage(),
     CalendarPage(),
+    AwarenessPage(),
     MemoPage(),
     SettingsPage(),
   ];
 
   static const _icons = <IconData>[
     Icons.checklist_rounded,
-    Icons.calendar_month_rounded,
+    Icons.psychology_alt_outlined,
     Icons.note_alt_outlined,
     Icons.settings_rounded,
   ];

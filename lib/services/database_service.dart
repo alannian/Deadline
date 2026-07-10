@@ -5,6 +5,7 @@ import '../models/task_record.dart';
 import '../models/schedule.dart';
 import '../models/memo.dart';
 import '../models/habit.dart';
+import '../models/awareness_goal.dart';
 
 class DatabaseService {
   static Database? _database;
@@ -24,7 +25,7 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 9,
+      version: 10,
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
     );
@@ -117,6 +118,14 @@ class DatabaseService {
         habitId TEXT NOT NULL,
         date TEXT NOT NULL,
         FOREIGN KEY (habitId) REFERENCES habits (id) ON DELETE CASCADE
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE awareness_goals (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        createdAt INTEGER NOT NULL
       )
     ''');
   }
@@ -300,6 +309,40 @@ class DatabaseService {
     if (oldVersion < 9) {
       await db.execute('ALTER TABLE tasks ADD COLUMN isHidden INTEGER DEFAULT 0');
     }
+    if (oldVersion < 10) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS awareness_goals (
+          id TEXT PRIMARY KEY,
+          title TEXT NOT NULL,
+          createdAt INTEGER NOT NULL
+        )
+      ''');
+    }
+  }
+
+  // ==================== AwarenessGoal CRUD ====================
+
+  Future<void> insertAwarenessGoal(AwarenessGoal goal) async {
+    final db = await database;
+    await db.insert('awareness_goals', goal.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<List<AwarenessGoal>> getAwarenessGoals() async {
+    final db = await database;
+    final maps = await db.query('awareness_goals', orderBy: 'createdAt ASC');
+    return maps.map((map) => AwarenessGoal.fromMap(map)).toList();
+  }
+
+  Future<void> updateAwarenessGoal(AwarenessGoal goal) async {
+    final db = await database;
+    await db.update('awareness_goals', goal.toMap(),
+        where: 'id = ?', whereArgs: [goal.id]);
+  }
+
+  Future<void> deleteAwarenessGoal(String id) async {
+    final db = await database;
+    await db.delete('awareness_goals', where: 'id = ?', whereArgs: [id]);
   }
 
   // ==================== MemoFolder CRUD ====================
@@ -410,6 +453,12 @@ class DatabaseService {
     final db = await database;
     await db.delete('habit_completions', where: 'habitId = ?', whereArgs: [id]);
     await db.delete('habits', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<void> updateHabit(Habit habit) async {
+    final db = await database;
+    await db.update('habits', habit.toMap(),
+        where: 'id = ?', whereArgs: [habit.id]);
   }
 
   Future<void> insertHabitCompletion(HabitCompletion c) async {

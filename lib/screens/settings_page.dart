@@ -85,7 +85,7 @@ class SettingsPage extends StatelessWidget {
                     if (settings.deadline != null)
                       IconButton(
                         icon: const Icon(Icons.clear, size: 18),
-                        onPressed: () => settings.setDeadline(null),
+                        onPressed: () => settings.clearDeadline(),
                         tooltip: s.clear,
                       ),
                     const Icon(Icons.chevron_right_rounded),
@@ -101,7 +101,17 @@ class SettingsPage extends StatelessWidget {
                     lastDate: DateTime(2099),
                   );
                   if (picked != null) {
-                    settings.setDeadline(picked);
+                    if (!context.mounted) return;
+                    final reward =
+                        await _askReward(context, settings.deadlineReward);
+                    if (reward == null || reward.trim().isEmpty) {
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(s.rewardRequired)),
+                      );
+                      return;
+                    }
+                    settings.setDeadlineWithReward(picked, reward);
                   }
                 },
               ),
@@ -213,6 +223,32 @@ class SettingsPage extends StatelessWidget {
     );
   }
 
+  Future<String?> _askReward(BuildContext context, String? initialReward) {
+    final s = S.read(context);
+    final ctrl = TextEditingController(text: initialReward ?? '');
+    return showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(s.setDeadlineReward),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          decoration: InputDecoration(hintText: s.rewardHint),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(s.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
+            child: Text(s.ok),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showContactPage(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final s = S.read(context);
@@ -319,7 +355,7 @@ class _PageOrderEditor extends StatelessWidget {
 
   static const _pageIcons = [
     Icons.checklist_rounded,
-    Icons.calendar_month_rounded,
+    Icons.psychology_alt_outlined,
     Icons.note_alt_outlined,
     Icons.settings_rounded,
   ];

@@ -16,6 +16,12 @@ class Habit {
         name: m['name'] as String,
         createdAt: DateTime.parse(m['createdAt'] as String),
       );
+
+  Habit copyWith({String? name}) => Habit(
+        id: id,
+        name: name ?? this.name,
+        createdAt: createdAt,
+      );
 }
 
 class HabitCompletion {
