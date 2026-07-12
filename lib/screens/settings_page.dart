@@ -25,8 +25,9 @@ class SettingsPage extends StatelessWidget {
                 subtitle: Text(
                   settings.themeMode == ThemeMode.dark ? s.enabled : s.disabled,
                   style: TextStyle(
-                      color: isDark ? Colors.grey[500] : Colors.grey[600],
-                      fontSize: 13),
+                    color: isDark ? Colors.grey[500] : Colors.grey[600],
+                    fontSize: 13,
+                  ),
                 ),
                 secondary: Icon(
                   settings.themeMode == ThemeMode.dark
@@ -35,8 +36,7 @@ class SettingsPage extends StatelessWidget {
                 ),
                 value: settings.themeMode == ThemeMode.dark,
                 onChanged: (v) {
-                  settings.setThemeMode(
-                      v ? ThemeMode.dark : ThemeMode.light);
+                  settings.setThemeMode(v ? ThemeMode.dark : ThemeMode.light);
                 },
               ),
 
@@ -50,13 +50,13 @@ class SettingsPage extends StatelessWidget {
                 subtitle: Text(
                   s.currentLanguage,
                   style: TextStyle(
-                      color: isDark ? Colors.grey[500] : Colors.grey[600],
-                      fontSize: 13),
+                    color: isDark ? Colors.grey[500] : Colors.grey[600],
+                    fontSize: 13,
+                  ),
                 ),
                 trailing: const Icon(Icons.chevron_right_rounded),
                 onTap: () {
-                  settings.setLanguage(
-                      settings.language == 'zh' ? 'en' : 'zh');
+                  settings.setLanguage(settings.language == 'zh' ? 'en' : 'zh');
                 },
               ),
 
@@ -73,11 +73,13 @@ class SettingsPage extends StatelessWidget {
                           settings.deadline!.year,
                           settings.deadline!.month,
                           settings.deadline!.day,
-                          settings.remainingDays)
+                          settings.remainingDays,
+                        )
                       : s.notSet,
                   style: TextStyle(
-                      color: isDark ? Colors.grey[500] : Colors.grey[600],
-                      fontSize: 13),
+                    color: isDark ? Colors.grey[500] : Colors.grey[600],
+                    fontSize: 13,
+                  ),
                 ),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -96,19 +98,22 @@ class SettingsPage extends StatelessWidget {
                     context: context,
                     locale: const Locale('zh', 'CN'),
                     initialDate:
-                        settings.deadline ?? DateTime.now().add(const Duration(days: 30)),
+                        settings.deadline ??
+                        DateTime.now().add(const Duration(days: 30)),
                     firstDate: DateTime.now(),
                     lastDate: DateTime(2099),
                   );
                   if (picked != null) {
                     if (!context.mounted) return;
-                    final reward =
-                        await _askReward(context, settings.deadlineReward);
+                    final reward = await _askReward(
+                      context,
+                      settings.deadlineReward,
+                    );
                     if (reward == null || reward.trim().isEmpty) {
                       if (!context.mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(s.rewardRequired)),
-                      );
+                      ScaffoldMessenger.of(
+                        context,
+                      ).showSnackBar(SnackBar(content: Text(s.rewardRequired)));
                       return;
                     }
                     settings.setDeadlineWithReward(picked, reward);
@@ -121,12 +126,16 @@ class SettingsPage extends StatelessWidget {
               // ── 页面顺序 ──
               _SectionHeader(title: s.pageOrder, isDark: isDark),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 4,
+                ),
                 child: Text(
                   s.dragToReorder,
                   style: TextStyle(
-                      fontSize: 12,
-                      color: isDark ? Colors.grey[600] : Colors.grey[500]),
+                    fontSize: 12,
+                    color: isDark ? Colors.grey[600] : Colors.grey[500],
+                  ),
                 ),
               ),
               _PageOrderEditor(settings: settings, isDark: isDark),
@@ -142,7 +151,10 @@ class SettingsPage extends StatelessWidget {
                 onTap: () => _showDonationPage(context),
               ),
               ListTile(
-                leading: const Icon(Icons.feedback_outlined, color: Colors.orange),
+                leading: const Icon(
+                  Icons.feedback_outlined,
+                  color: Colors.orange,
+                ),
                 title: Text(s.feedbackDesc),
                 trailing: const Icon(Icons.chevron_right_rounded),
                 onTap: () => _showContactPage(context),
@@ -155,8 +167,10 @@ class SettingsPage extends StatelessWidget {
               ListTile(
                 leading: const Icon(Icons.info_outline_rounded),
                 title: const Text('Deadline'),
-                subtitle: Text(s.appSubtitle,
-                    style: const TextStyle(fontSize: 13)),
+                subtitle: Text(
+                  s.appSubtitle,
+                  style: const TextStyle(fontSize: 13),
+                ),
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -165,9 +179,15 @@ class SettingsPage extends StatelessWidget {
                   children: [
                     const Row(
                       children: [
-                        Text('made with ', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                        Text(
+                          'made with ',
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
                         Icon(Icons.favorite, color: Colors.red, size: 14),
-                        Text(' for productivity', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                        Text(
+                          ' for productivity',
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 8),
@@ -203,18 +223,28 @@ class SettingsPage extends StatelessWidget {
               children: [
                 Icon(Icons.favorite_rounded, color: Colors.red, size: 48),
                 const SizedBox(height: 16),
-                const Text('感谢你的支持！',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                const Text(
+                  '感谢你的支持！',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                ),
                 const SizedBox(height: 32),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(16),
-                  child: Image.asset('assets/qrcode.png', width: 240, height: 240, fit: BoxFit.cover),
+                  child: Image.asset(
+                    'assets/qrcode.png',
+                    width: 240,
+                    height: 240,
+                    fit: BoxFit.cover,
+                  ),
                 ),
                 const SizedBox(height: 24),
-                Text('扫码打赏',
-                    style: TextStyle(
-                        fontSize: 14,
-                        color: isDark ? Colors.grey[400] : Colors.grey[600])),
+                Text(
+                  '扫码打赏',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: isDark ? Colors.grey[400] : Colors.grey[600],
+                  ),
+                ),
               ],
             ),
           ),
@@ -230,10 +260,20 @@ class SettingsPage extends StatelessWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(s.setDeadlineReward),
-        content: TextField(
-          controller: ctrl,
-          autofocus: true,
-          decoration: InputDecoration(hintText: s.rewardHint),
+        content: SizedBox(
+          width: 420,
+          child: TextField(
+            controller: ctrl,
+            autofocus: true,
+            keyboardType: TextInputType.multiline,
+            textInputAction: TextInputAction.newline,
+            minLines: 5,
+            maxLines: 10,
+            decoration: InputDecoration(
+              hintText: s.rewardHint,
+              alignLabelWithHint: true,
+            ),
+          ),
         ),
         actions: [
           TextButton(
@@ -263,12 +303,26 @@ class SettingsPage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 const SizedBox(height: 40),
-                const Icon(Icons.mail_outline_rounded, size: 56, color: Color(0xFF42A5F5)),
+                const Icon(
+                  Icons.mail_outline_rounded,
+                  size: 56,
+                  color: Color(0xFF42A5F5),
+                ),
                 const SizedBox(height: 24),
-                Text(s.contactTitle,
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+                Text(
+                  s.contactTitle,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 const SizedBox(height: 32),
-                _contactItem(Icons.email_rounded, '邮箱 / Email', '1027999125@qq.com', isDark),
+                _contactItem(
+                  Icons.email_rounded,
+                  '邮箱 / Email',
+                  '1027999125@qq.com',
+                  isDark,
+                ),
                 const Spacer(),
                 Text(
                   '欢迎反馈问题、提出建议或进行合作交流',
@@ -307,10 +361,13 @@ class SettingsPage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: TextStyle(
-                  fontSize: 12,
-                  color: isDark ? Colors.grey[500] : Colors.grey[600],
-                )),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isDark ? Colors.grey[500] : Colors.grey[600],
+                  ),
+                ),
                 const SizedBox(height: 2),
                 Text(value, style: const TextStyle(fontSize: 15)),
               ],
@@ -348,10 +405,7 @@ class _PageOrderEditor extends StatelessWidget {
   final SettingsProvider settings;
   final bool isDark;
 
-  const _PageOrderEditor({
-    required this.settings,
-    required this.isDark,
-  });
+  const _PageOrderEditor({required this.settings, required this.isDark});
 
   static const _pageIcons = [
     Icons.checklist_rounded,

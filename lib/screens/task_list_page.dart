@@ -387,37 +387,86 @@ class _TaskListPageState extends State<TaskListPage> {
                     ),
                   ),
                   const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      Text(
-                        '${s.totalProgress} ${_formatAmount(done)}/${_formatAmount(total)}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: isDark ? Colors.grey[500] : Colors.grey[600],
-                        ),
-                      ),
-                      const Spacer(),
-                      if (showReward)
-                        Flexible(
-                          child: Text(
-                            '${s.reward}: $reward',
-                            textAlign: TextAlign.end,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: rewardActive
-                                  ? FontWeight.w700
-                                  : FontWeight.w500,
+                  Text(
+                    '${s.totalProgress} ${_formatAmount(done)}/${_formatAmount(total)}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDark ? Colors.grey[500] : Colors.grey[600],
+                    ),
+                  ),
+                  if (showReward) ...[
+                    const SizedBox(height: 12),
+                    InkWell(
+                      borderRadius: BorderRadius.circular(6),
+                      onTap: () => _editReward(context, settings),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(
+                              Icons.card_giftcard_rounded,
+                              size: 18,
                               color: rewardActive
                                   ? const Color(0xFFFFB300)
                                   : (isDark
                                         ? Colors.grey[600]
                                         : Colors.grey[500]),
                             ),
-                          ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Text(
+                                        s.reward,
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                          color: rewardActive
+                                              ? const Color(0xFFFFB300)
+                                              : (isDark
+                                                    ? Colors.grey[500]
+                                                    : Colors.grey[600]),
+                                        ),
+                                      ),
+                                      const Spacer(),
+                                      Icon(
+                                        Icons.edit_outlined,
+                                        size: 17,
+                                        color: isDark
+                                            ? Colors.grey[600]
+                                            : Colors.grey[500],
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    reward,
+                                    softWrap: true,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      height: 1.45,
+                                      fontWeight: rewardActive
+                                          ? FontWeight.w700
+                                          : FontWeight.w500,
+                                      color: rewardActive
+                                          ? const Color(0xFFFFB300)
+                                          : (isDark
+                                                ? Colors.grey[500]
+                                                : Colors.grey[700]),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                    ],
-                  ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
       ),
@@ -486,10 +535,20 @@ class _TaskListPageState extends State<TaskListPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(s.setDeadlineReward),
-        content: TextField(
-          controller: ctrl,
-          autofocus: true,
-          decoration: InputDecoration(hintText: s.rewardHint),
+        content: SizedBox(
+          width: 420,
+          child: TextField(
+            controller: ctrl,
+            autofocus: true,
+            keyboardType: TextInputType.multiline,
+            textInputAction: TextInputAction.newline,
+            minLines: 5,
+            maxLines: 10,
+            decoration: InputDecoration(
+              hintText: s.rewardHint,
+              alignLabelWithHint: true,
+            ),
+          ),
         ),
         actions: [
           TextButton(
@@ -503,6 +562,24 @@ class _TaskListPageState extends State<TaskListPage> {
         ],
       ),
     );
+  }
+
+  Future<void> _editReward(
+    BuildContext context,
+    SettingsProvider settings,
+  ) async {
+    final reward = await _askReward(context, settings.deadlineReward);
+    if (reward == null) return;
+    if (reward.trim().isEmpty) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(S.read(context).rewardRequired)));
+      return;
+    }
+    if (settings.deadline != null) {
+      await settings.setDeadlineWithReward(settings.deadline!, reward);
+    }
   }
 
   void _showCreateTaskDialog(BuildContext context) {
