@@ -27,16 +27,16 @@ class TimePeriod {
   }
 
   Map<String, dynamic> toMap() => {
-        'name': name,
-        'start': startMinutes,
-        'end': endMinutes,
-      };
+    'name': name,
+    'start': startMinutes,
+    'end': endMinutes,
+  };
 
   factory TimePeriod.fromMap(Map<String, dynamic> map) => TimePeriod(
-        name: map['name'] as String,
-        startMinutes: map['start'] as int,
-        endMinutes: map['end'] as int,
-      );
+    name: map['name'] as String,
+    startMinutes: map['start'] as int,
+    endMinutes: map['end'] as int,
+  );
 }
 
 class SettingsProvider extends ChangeNotifier {
@@ -47,9 +47,6 @@ class SettingsProvider extends ChangeNotifier {
 
   DateTime? _deadline;
   DateTime? get deadline => _deadline;
-
-  String? _deadlineReward;
-  String? get deadlineReward => _deadlineReward;
 
   List<int> _pageOrder = [0, 1, 2, 3];
   List<int> get pageOrder => _pageOrder;
@@ -76,21 +73,14 @@ class SettingsProvider extends ChangeNotifier {
   Future<void> loadSettings() async {
     // 主题
     final themeStr = await _db.getSetting('themeMode');
-    _themeMode =
-        themeStr == 'light' ? ThemeMode.light : ThemeMode.dark;
+    _themeMode = themeStr == 'light' ? ThemeMode.light : ThemeMode.dark;
 
     // 截止日期
     final deadlineStr = await _db.getSetting('deadline');
     if (deadlineStr != null) {
       if (deadlineStr.isNotEmpty) {
-        _deadline =
-            DateTime.fromMillisecondsSinceEpoch(int.parse(deadlineStr));
+        _deadline = DateTime.fromMillisecondsSinceEpoch(int.parse(deadlineStr));
       }
-    }
-
-    final rewardStr = await _db.getSetting('deadlineReward');
-    if (rewardStr != null && rewardStr.trim().isNotEmpty) {
-      _deadlineReward = rewardStr;
     }
 
     // 页面顺序
@@ -124,7 +114,9 @@ class SettingsProvider extends ChangeNotifier {
   Future<void> setThemeMode(ThemeMode mode) async {
     _themeMode = mode;
     await _db.setSetting(
-        'themeMode', mode == ThemeMode.light ? 'light' : 'dark');
+      'themeMode',
+      mode == ThemeMode.light ? 'light' : 'dark',
+    );
     notifyListeners();
   }
 
@@ -132,28 +124,16 @@ class SettingsProvider extends ChangeNotifier {
   Future<void> setDeadline(DateTime? date) async {
     _deadline = date;
     if (date != null) {
-      await _db.setSetting(
-          'deadline', date.millisecondsSinceEpoch.toString());
+      await _db.setSetting('deadline', date.millisecondsSinceEpoch.toString());
     } else {
       await _db.setSetting('deadline', '');
     }
     notifyListeners();
   }
 
-  Future<void> setDeadlineWithReward(DateTime date, String reward) async {
-    _deadline = date;
-    _deadlineReward = reward.trim();
-    await _db.setSetting(
-        'deadline', date.millisecondsSinceEpoch.toString());
-    await _db.setSetting('deadlineReward', _deadlineReward!);
-    notifyListeners();
-  }
-
   Future<void> clearDeadline() async {
     _deadline = null;
-    _deadlineReward = null;
     await _db.setSetting('deadline', '');
-    await _db.setSetting('deadlineReward', '');
     notifyListeners();
   }
 

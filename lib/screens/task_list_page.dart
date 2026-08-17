@@ -7,9 +7,9 @@ import '../widgets/task_card.dart';
 import '../l10n/app_strings.dart';
 
 class TaskListPage extends StatefulWidget {
-  const TaskListPage({super.key, required this.onShowPlanning});
+  const TaskListPage({super.key, required this.onShowIssues});
 
-  final VoidCallback onShowPlanning;
+  final VoidCallback onShowIssues;
 
   @override
   State<TaskListPage> createState() => _TaskListPageState();
@@ -87,10 +87,10 @@ class _TaskListPageState extends State<TaskListPage> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             FloatingActionButton(
-              heroTag: 'showPlanning',
-              tooltip: s.planningMode,
-              onPressed: widget.onShowPlanning,
-              child: const Icon(Icons.calendar_month_rounded),
+              heroTag: 'showIssues',
+              tooltip: s.issuesMode,
+              onPressed: widget.onShowIssues,
+              child: const Icon(Icons.help_outline_rounded),
             ),
             FloatingActionButton(
               heroTag: 'addTask',
@@ -263,7 +263,9 @@ class _TaskListPageState extends State<TaskListPage> {
     bool isDark,
   ) {
     final s = S.of(context);
-    final activeTasks = taskProvider.tasks;
+    final activeTasks = taskProvider.tasks
+        .where((task) => !task.isIndependent)
+        .toList();
     final total = activeTasks.fold<double>(
       0,
       (sum, task) => sum + task.targetAmount,
@@ -276,10 +278,6 @@ class _TaskListPageState extends State<TaskListPage> {
     final progress = total > 0
         ? (done / total).clamp(0.0, 1.0).toDouble()
         : 0.0;
-    final reward = settings.deadlineReward?.trim();
-    final showReward = reward != null && reward.isNotEmpty;
-    final rewardActive =
-        settings.deadline != null && settings.remainingDays == 1;
 
     return InkWell(
       onTap: () => _pickDeadline(context, settings),
@@ -394,79 +392,6 @@ class _TaskListPageState extends State<TaskListPage> {
                       color: isDark ? Colors.grey[500] : Colors.grey[600],
                     ),
                   ),
-                  if (showReward) ...[
-                    const SizedBox(height: 12),
-                    InkWell(
-                      borderRadius: BorderRadius.circular(6),
-                      onTap: () => _editReward(context, settings),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 4),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Icon(
-                              Icons.card_giftcard_rounded,
-                              size: 18,
-                              color: rewardActive
-                                  ? const Color(0xFFFFB300)
-                                  : (isDark
-                                        ? Colors.grey[600]
-                                        : Colors.grey[500]),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Text(
-                                        s.reward,
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w600,
-                                          color: rewardActive
-                                              ? const Color(0xFFFFB300)
-                                              : (isDark
-                                                    ? Colors.grey[500]
-                                                    : Colors.grey[600]),
-                                        ),
-                                      ),
-                                      const Spacer(),
-                                      Icon(
-                                        Icons.edit_outlined,
-                                        size: 17,
-                                        color: isDark
-                                            ? Colors.grey[600]
-                                            : Colors.grey[500],
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    reward,
-                                    softWrap: true,
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      height: 1.45,
-                                      fontWeight: rewardActive
-                                          ? FontWeight.w700
-                                          : FontWeight.w500,
-                                      color: rewardActive
-                                          ? const Color(0xFFFFB300)
-                                          : (isDark
-                                                ? Colors.grey[500]
-                                                : Colors.grey[700]),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
                 ],
               ),
       ),
@@ -515,70 +440,7 @@ class _TaskListPageState extends State<TaskListPage> {
       lastDate: DateTime(2030),
     );
     if (picked != null) {
-      if (!context.mounted) return;
-      final reward = await _askReward(context, settings.deadlineReward);
-      if (reward == null || reward.trim().isEmpty) {
-        if (!context.mounted) return;
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(S.read(context).rewardRequired)));
-        return;
-      }
-      await settings.setDeadlineWithReward(picked, reward);
-    }
-  }
-
-  Future<String?> _askReward(BuildContext context, String? initialReward) {
-    final ctrl = TextEditingController(text: initialReward ?? '');
-    final s = S.read(context);
-    return showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(s.setDeadlineReward),
-        content: SizedBox(
-          width: 420,
-          child: TextField(
-            controller: ctrl,
-            autofocus: true,
-            keyboardType: TextInputType.multiline,
-            textInputAction: TextInputAction.newline,
-            minLines: 5,
-            maxLines: 10,
-            decoration: InputDecoration(
-              hintText: s.rewardHint,
-              alignLabelWithHint: true,
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(s.cancel),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
-            child: Text(s.ok),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _editReward(
-    BuildContext context,
-    SettingsProvider settings,
-  ) async {
-    final reward = await _askReward(context, settings.deadlineReward);
-    if (reward == null) return;
-    if (reward.trim().isEmpty) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(S.read(context).rewardRequired)));
-      return;
-    }
-    if (settings.deadline != null) {
-      await settings.setDeadlineWithReward(settings.deadline!, reward);
+      await settings.setDeadline(picked);
     }
   }
 
@@ -587,6 +449,7 @@ class _TaskListPageState extends State<TaskListPage> {
     final unitCtrl = TextEditingController();
     final amountCtrl = TextEditingController();
     final noteCtrl = TextEditingController();
+    var isIndependent = false;
     final s = S.read(context);
 
     showDialog(
@@ -635,6 +498,19 @@ class _TaskListPageState extends State<TaskListPage> {
                 maxLines: 6,
                 minLines: 3,
               ),
+              const SizedBox(height: 8),
+              StatefulBuilder(
+                builder: (context, setDialogState) => CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  value: isIndependent,
+                  onChanged: (value) {
+                    setDialogState(() => isIndependent = value ?? false);
+                  },
+                  title: Text(s.independentTask),
+                  subtitle: Text(s.independentTaskHint),
+                  controlAffinity: ListTileControlAffinity.leading,
+                ),
+              ),
             ],
           ),
         ),
@@ -664,6 +540,7 @@ class _TaskListPageState extends State<TaskListPage> {
                 note: noteCtrl.text.trim().isEmpty
                     ? null
                     : noteCtrl.text.trim(),
+                isIndependent: isIndependent,
               );
               Navigator.pop(ctx);
             },
@@ -941,6 +818,26 @@ class _TaskListPageState extends State<TaskListPage> {
           SimpleDialogOption(
             onPressed: () {
               Navigator.pop(ctx);
+              provider.toggleIndependent(task);
+            },
+            child: Row(
+              children: [
+                Icon(
+                  task.isIndependent
+                      ? Icons.track_changes_rounded
+                      : Icons.all_inclusive_rounded,
+                  size: 20,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  task.isIndependent ? s.includeInProgress : s.makeIndependent,
+                ),
+              ],
+            ),
+          ),
+          SimpleDialogOption(
+            onPressed: () {
+              Navigator.pop(ctx);
               provider.togglePin(task);
             },
             child: Row(
@@ -1001,6 +898,7 @@ class _TaskListPageState extends State<TaskListPage> {
       text: _formatAmount(task.targetAmount),
     );
     final noteCtrl = TextEditingController(text: task.note ?? '');
+    var isIndependent = task.isIndependent;
     final s = S.read(context);
 
     showDialog(
@@ -1048,6 +946,19 @@ class _TaskListPageState extends State<TaskListPage> {
                 maxLines: 6,
                 minLines: 3,
               ),
+              const SizedBox(height: 8),
+              StatefulBuilder(
+                builder: (context, setDialogState) => CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  value: isIndependent,
+                  onChanged: (value) {
+                    setDialogState(() => isIndependent = value ?? false);
+                  },
+                  title: Text(s.independentTask),
+                  subtitle: Text(s.independentTaskHint),
+                  controlAffinity: ListTileControlAffinity.leading,
+                ),
+              ),
             ],
           ),
         ),
@@ -1074,6 +985,7 @@ class _TaskListPageState extends State<TaskListPage> {
                 title: title,
                 unit: unit,
                 targetAmount: amount,
+                isIndependent: isIndependent,
                 note: noteCtrl.text.trim().isEmpty
                     ? null
                     : noteCtrl.text.trim(),
@@ -1154,7 +1066,7 @@ class _TaskListPageState extends State<TaskListPage> {
   }
 
   bool _isTaskLocked(Task task, SettingsProvider settings) {
-    return !task.isHidden && settings.activeTasksLocked;
+    return !task.isHidden && !task.isIndependent && settings.activeTasksLocked;
   }
 
   void _showLockedMessage(BuildContext context) {

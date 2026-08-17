@@ -50,8 +50,9 @@ class TaskCard extends StatelessWidget {
                 width: 4,
                 height: 40,
                 decoration: BoxDecoration(
-                    color: color,
-                    borderRadius: BorderRadius.circular(2)),
+                  color: color,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
               const SizedBox(width: 12),
 
@@ -63,11 +64,28 @@ class TaskCard extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                      if (task.isPinned && !task.isCompleted)
+                        if (task.isPinned && !task.isCompleted)
                           Padding(
                             padding: const EdgeInsets.only(right: 4),
-                            child: Icon(Icons.push_pin,
-                                size: 13, color: Colors.red[300]),
+                            child: Icon(
+                              Icons.push_pin,
+                              size: 13,
+                              color: Colors.red[300],
+                            ),
+                          ),
+                        if (task.isIndependent)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 5),
+                            child: Tooltip(
+                              message: s.independentTaskHint,
+                              child: Icon(
+                                Icons.all_inclusive_rounded,
+                                size: 15,
+                                color: isDark
+                                    ? Colors.tealAccent[100]
+                                    : Colors.teal[600],
+                              ),
+                            ),
                           ),
                         Expanded(
                           child: Text(
@@ -76,7 +94,9 @@ class TaskCard extends StatelessWidget {
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
                               color: isLocked
-                                  ? (isDark ? Colors.grey[500] : Colors.grey[600])
+                                  ? (isDark
+                                        ? Colors.grey[500]
+                                        : Colors.grey[600])
                                   : null,
                             ),
                             maxLines: 1,
@@ -86,14 +106,20 @@ class TaskCard extends StatelessWidget {
                         if (task.isCompleted)
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 1),
+                              horizontal: 6,
+                              vertical: 1,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.green.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(6),
                             ),
-                            child: const Text('✓',
-                                style: TextStyle(
-                                    color: Colors.green, fontSize: 11)),
+                            child: const Text(
+                              '✓',
+                              style: TextStyle(
+                                color: Colors.green,
+                                fontSize: 11,
+                              ),
+                            ),
                           ),
                       ],
                     ),
@@ -117,10 +143,9 @@ class TaskCard extends StatelessWidget {
                         Text(
                           '${_formatAmount(task.completedAmount)}/${_formatAmount(task.targetAmount)}',
                           style: TextStyle(
-                              fontSize: 11,
-                              color: isDark
-                                  ? Colors.grey[500]
-                                  : Colors.grey[600]),
+                            fontSize: 11,
+                            color: isDark ? Colors.grey[500] : Colors.grey[600],
+                          ),
                         ),
                       ],
                     ),
@@ -145,9 +170,9 @@ class TaskCard extends StatelessWidget {
                   Text(
                     s.unitRemainingLabel(task.unit),
                     style: TextStyle(
-                        fontSize: 10,
-                        color:
-                            isDark ? Colors.grey[500] : Colors.grey[600]),
+                      fontSize: 10,
+                      color: isDark ? Colors.grey[500] : Colors.grey[600],
+                    ),
                   ),
                 ],
               ),

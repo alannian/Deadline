@@ -6,6 +6,7 @@ import '../models/schedule.dart';
 import '../models/memo.dart';
 import '../models/habit.dart';
 import '../models/awareness_goal.dart';
+import '../models/task_issue.dart';
 
 class DatabaseService {
   static Database? _database;
@@ -25,7 +26,7 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 10,
+      version: 12,
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
     );
@@ -42,6 +43,7 @@ class DatabaseService {
         colorValue INTEGER DEFAULT 4282557941,
         isPinned INTEGER DEFAULT 0,
         isHidden INTEGER DEFAULT 0,
+        isIndependent INTEGER DEFAULT 0,
         note TEXT,
         createdAt INTEGER NOT NULL
       )
@@ -128,30 +130,44 @@ class DatabaseService {
         createdAt INTEGER NOT NULL
       )
     ''');
+
+    await db.execute('''
+      CREATE TABLE task_issues (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        note TEXT DEFAULT '',
+        createdAt INTEGER NOT NULL,
+        updatedAt INTEGER NOT NULL
+      )
+    ''');
   }
 
   // ==================== Settings ====================
 
   Future<String?> getSetting(String key) async {
     final db = await database;
-    final maps =
-        await db.query('settings', where: 'key = ?', whereArgs: [key]);
+    final maps = await db.query('settings', where: 'key = ?', whereArgs: [key]);
     if (maps.isEmpty) return null;
     return maps.first['value'] as String?;
   }
 
   Future<void> setSetting(String key, String value) async {
     final db = await database;
-    await db.insert('settings', {'key': key, 'value': value},
-        conflictAlgorithm: ConflictAlgorithm.replace);
+    await db.insert('settings', {
+      'key': key,
+      'value': value,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   // ==================== Task CRUD ====================
 
   Future<void> insertTask(Task task) async {
     final db = await database;
-    await db.insert('tasks', task.toMap(),
-        conflictAlgorithm: ConflictAlgorithm.replace);
+    await db.insert(
+      'tasks',
+      task.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
   Future<List<Task>> getAllTasks() async {
@@ -169,8 +185,12 @@ class DatabaseService {
 
   Future<void> updateTask(Task task) async {
     final db = await database;
-    await db
-        .update('tasks', task.toMap(), where: 'id = ?', whereArgs: [task.id]);
+    await db.update(
+      'tasks',
+      task.toMap(),
+      where: 'id = ?',
+      whereArgs: [task.id],
+    );
   }
 
   Future<void> deleteTask(String id) async {
@@ -184,16 +204,23 @@ class DatabaseService {
 
   Future<void> insertTaskRecord(TaskRecord record) async {
     final db = await database;
-    await db.insert('task_records', record.toMap(),
-        conflictAlgorithm: ConflictAlgorithm.replace);
+    await db.insert(
+      'task_records',
+      record.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
     // 更新任务的已完成量
     await _recalcTaskCompleted(record.taskId);
   }
 
   Future<List<TaskRecord>> getRecordsByTask(String taskId) async {
     final db = await database;
-    final maps = await db.query('task_records',
-        where: 'taskId = ?', whereArgs: [taskId], orderBy: 'date DESC');
+    final maps = await db.query(
+      'task_records',
+      where: 'taskId = ?',
+      whereArgs: [taskId],
+      orderBy: 'date DESC',
+    );
     return maps.map((map) => TaskRecord.fromMap(map)).toList();
   }
 
@@ -206,19 +233,27 @@ class DatabaseService {
   Future<void> _recalcTaskCompleted(String taskId) async {
     final db = await database;
     final result = await db.rawQuery(
-        'SELECT COALESCE(SUM(amount), 0) as total FROM task_records WHERE taskId = ?',
-        [taskId]);
+      'SELECT COALESCE(SUM(amount), 0) as total FROM task_records WHERE taskId = ?',
+      [taskId],
+    );
     final total = (result.first['total'] as num?)?.toDouble() ?? 0;
-    await db.update('tasks', {'completedAmount': total},
-        where: 'id = ?', whereArgs: [taskId]);
+    await db.update(
+      'tasks',
+      {'completedAmount': total},
+      where: 'id = ?',
+      whereArgs: [taskId],
+    );
   }
 
   // ==================== Schedule CRUD ====================
 
   Future<void> insertSchedule(Schedule schedule) async {
     final db = await database;
-    await db.insert('schedules', schedule.toMap(),
-        conflictAlgorithm: ConflictAlgorithm.replace);
+    await db.insert(
+      'schedules',
+      schedule.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
   Future<List<Schedule>> getSchedulesByDate(DateTime date) async {
@@ -230,7 +265,7 @@ class DatabaseService {
       where: 'date >= ? AND date < ?',
       whereArgs: [
         startOfDay.millisecondsSinceEpoch,
-        endOfDay.millisecondsSinceEpoch
+        endOfDay.millisecondsSinceEpoch,
       ],
       orderBy: 'startMinutes ASC',
     );
@@ -239,15 +274,21 @@ class DatabaseService {
 
   Future<List<Schedule>> getAllSchedules() async {
     final db = await database;
-    final maps =
-        await db.query('schedules', orderBy: 'date ASC, startMinutes ASC');
+    final maps = await db.query(
+      'schedules',
+      orderBy: 'date ASC, startMinutes ASC',
+    );
     return maps.map((map) => Schedule.fromMap(map)).toList();
   }
 
   Future<void> updateSchedule(Schedule schedule) async {
     final db = await database;
-    await db.update('schedules', schedule.toMap(),
-        where: 'id = ?', whereArgs: [schedule.id]);
+    await db.update(
+      'schedules',
+      schedule.toMap(),
+      where: 'id = ?',
+      whereArgs: [schedule.id],
+    );
   }
 
   Future<void> deleteSchedule(String id) async {
@@ -259,8 +300,9 @@ class DatabaseService {
   Future<double> getTaskAllocatedAmount(String taskId) async {
     final db = await database;
     final result = await db.rawQuery(
-        'SELECT COALESCE(SUM(plannedAmount), 0) as total FROM schedules WHERE taskId = ?',
-        [taskId]);
+      'SELECT COALESCE(SUM(plannedAmount), 0) as total FROM schedules WHERE taskId = ?',
+      [taskId],
+    );
     return (result.first['total'] as num?)?.toDouble() ?? 0;
   }
 
@@ -271,7 +313,9 @@ class DatabaseService {
       await db.execute('ALTER TABLE memo_folders ADD COLUMN parentId TEXT');
     }
     if (oldVersion < 3) {
-      await db.execute('ALTER TABLE tasks ADD COLUMN isPinned INTEGER DEFAULT 0');
+      await db.execute(
+        'ALTER TABLE tasks ADD COLUMN isPinned INTEGER DEFAULT 0',
+      );
     }
     if (oldVersion < 4) {
       await db.execute('ALTER TABLE tasks ADD COLUMN note TEXT');
@@ -292,22 +336,31 @@ class DatabaseService {
           FOREIGN KEY (habitId) REFERENCES habits (id) ON DELETE CASCADE
         )
       ''');
-    }    if (oldVersion < 6) {
-      await db.execute('ALTER TABLE memos ADD COLUMN isStarred INTEGER DEFAULT 0');
+    }
+    if (oldVersion < 6) {
+      await db.execute(
+        'ALTER TABLE memos ADD COLUMN isStarred INTEGER DEFAULT 0',
+      );
     }
     if (oldVersion < 7) {
       try {
-        await db.execute('ALTER TABLE memo_folders ADD COLUMN isStarred INTEGER DEFAULT 0');
+        await db.execute(
+          'ALTER TABLE memo_folders ADD COLUMN isStarred INTEGER DEFAULT 0',
+        );
       } catch (_) {}
     }
     if (oldVersion < 8) {
       // v7 upgrade may have been skipped due to a bug; ensure column exists
       try {
-        await db.execute('ALTER TABLE memo_folders ADD COLUMN isStarred INTEGER DEFAULT 0');
+        await db.execute(
+          'ALTER TABLE memo_folders ADD COLUMN isStarred INTEGER DEFAULT 0',
+        );
       } catch (_) {}
     }
     if (oldVersion < 9) {
-      await db.execute('ALTER TABLE tasks ADD COLUMN isHidden INTEGER DEFAULT 0');
+      await db.execute(
+        'ALTER TABLE tasks ADD COLUMN isHidden INTEGER DEFAULT 0',
+      );
     }
     if (oldVersion < 10) {
       await db.execute('''
@@ -318,14 +371,65 @@ class DatabaseService {
         )
       ''');
     }
+    if (oldVersion < 11) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS task_issues (
+          id TEXT PRIMARY KEY,
+          title TEXT NOT NULL,
+          note TEXT DEFAULT '',
+          createdAt INTEGER NOT NULL,
+          updatedAt INTEGER NOT NULL
+        )
+      ''');
+    }
+    if (oldVersion < 12) {
+      await db.execute(
+        'ALTER TABLE tasks ADD COLUMN isIndependent INTEGER DEFAULT 0',
+      );
+    }
+  }
+
+  // ==================== TaskIssue CRUD ====================
+
+  Future<void> insertTaskIssue(TaskIssue issue) async {
+    final db = await database;
+    await db.insert(
+      'task_issues',
+      issue.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<List<TaskIssue>> getTaskIssues() async {
+    final db = await database;
+    final maps = await db.query('task_issues', orderBy: 'updatedAt DESC');
+    return maps.map((map) => TaskIssue.fromMap(map)).toList();
+  }
+
+  Future<void> updateTaskIssue(TaskIssue issue) async {
+    final db = await database;
+    await db.update(
+      'task_issues',
+      issue.toMap(),
+      where: 'id = ?',
+      whereArgs: [issue.id],
+    );
+  }
+
+  Future<void> deleteTaskIssue(String id) async {
+    final db = await database;
+    await db.delete('task_issues', where: 'id = ?', whereArgs: [id]);
   }
 
   // ==================== AwarenessGoal CRUD ====================
 
   Future<void> insertAwarenessGoal(AwarenessGoal goal) async {
     final db = await database;
-    await db.insert('awareness_goals', goal.toMap(),
-        conflictAlgorithm: ConflictAlgorithm.replace);
+    await db.insert(
+      'awareness_goals',
+      goal.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
   Future<List<AwarenessGoal>> getAwarenessGoals() async {
@@ -336,8 +440,12 @@ class DatabaseService {
 
   Future<void> updateAwarenessGoal(AwarenessGoal goal) async {
     final db = await database;
-    await db.update('awareness_goals', goal.toMap(),
-        where: 'id = ?', whereArgs: [goal.id]);
+    await db.update(
+      'awareness_goals',
+      goal.toMap(),
+      where: 'id = ?',
+      whereArgs: [goal.id],
+    );
   }
 
   Future<void> deleteAwarenessGoal(String id) async {
@@ -349,8 +457,11 @@ class DatabaseService {
 
   Future<void> insertMemoFolder(MemoFolder folder) async {
     final db = await database;
-    await db.insert('memo_folders', folder.toMap(),
-        conflictAlgorithm: ConflictAlgorithm.replace);
+    await db.insert(
+      'memo_folders',
+      folder.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
   Future<List<MemoFolder>> getAllMemoFolders() async {
@@ -364,21 +475,30 @@ class DatabaseService {
     final db = await database;
     List<Map<String, dynamic>> maps;
     if (parentId == null) {
-      maps = await db.query('memo_folders',
-          where: 'parentId IS NULL', orderBy: 'sortOrder ASC');
+      maps = await db.query(
+        'memo_folders',
+        where: 'parentId IS NULL',
+        orderBy: 'sortOrder ASC',
+      );
     } else {
-      maps = await db.query('memo_folders',
-          where: 'parentId = ?',
-          whereArgs: [parentId],
-          orderBy: 'sortOrder ASC');
+      maps = await db.query(
+        'memo_folders',
+        where: 'parentId = ?',
+        whereArgs: [parentId],
+        orderBy: 'sortOrder ASC',
+      );
     }
     return maps.map((map) => MemoFolder.fromMap(map)).toList();
   }
 
   Future<void> updateMemoFolder(MemoFolder folder) async {
     final db = await database;
-    await db.update('memo_folders', folder.toMap(),
-        where: 'id = ?', whereArgs: [folder.id]);
+    await db.update(
+      'memo_folders',
+      folder.toMap(),
+      where: 'id = ?',
+      whereArgs: [folder.id],
+    );
   }
 
   /// 级联删除：递归删除文件夹及其所有子文件夹和备忘录
@@ -399,21 +519,29 @@ class DatabaseService {
 
   Future<void> insertMemo(Memo memo) async {
     final db = await database;
-    await db.insert('memos', memo.toMap(),
-        conflictAlgorithm: ConflictAlgorithm.replace);
+    await db.insert(
+      'memos',
+      memo.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
   Future<List<Memo>> getMemosByFolder(String? folderId) async {
     final db = await database;
     List<Map<String, dynamic>> maps;
     if (folderId == null) {
-      maps = await db.query('memos',
-          where: 'folderId IS NULL', orderBy: 'updatedAt DESC');
+      maps = await db.query(
+        'memos',
+        where: 'folderId IS NULL',
+        orderBy: 'updatedAt DESC',
+      );
     } else {
-      maps = await db.query('memos',
-          where: 'folderId = ?',
-          whereArgs: [folderId],
-          orderBy: 'updatedAt DESC');
+      maps = await db.query(
+        'memos',
+        where: 'folderId = ?',
+        whereArgs: [folderId],
+        orderBy: 'updatedAt DESC',
+      );
     }
     return maps.map((map) => Memo.fromMap(map)).toList();
   }
@@ -426,8 +554,12 @@ class DatabaseService {
 
   Future<void> updateMemo(Memo memo) async {
     final db = await database;
-    await db
-        .update('memos', memo.toMap(), where: 'id = ?', whereArgs: [memo.id]);
+    await db.update(
+      'memos',
+      memo.toMap(),
+      where: 'id = ?',
+      whereArgs: [memo.id],
+    );
   }
 
   Future<void> deleteMemo(String id) async {
@@ -439,8 +571,11 @@ class DatabaseService {
 
   Future<void> insertHabit(Habit habit) async {
     final db = await database;
-    await db.insert('habits', habit.toMap(),
-        conflictAlgorithm: ConflictAlgorithm.replace);
+    await db.insert(
+      'habits',
+      habit.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
   Future<List<Habit>> getAllHabits() async {
@@ -457,26 +592,39 @@ class DatabaseService {
 
   Future<void> updateHabit(Habit habit) async {
     final db = await database;
-    await db.update('habits', habit.toMap(),
-        where: 'id = ?', whereArgs: [habit.id]);
+    await db.update(
+      'habits',
+      habit.toMap(),
+      where: 'id = ?',
+      whereArgs: [habit.id],
+    );
   }
 
   Future<void> insertHabitCompletion(HabitCompletion c) async {
     final db = await database;
-    await db.insert('habit_completions', c.toMap(),
-        conflictAlgorithm: ConflictAlgorithm.replace);
+    await db.insert(
+      'habit_completions',
+      c.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
   Future<void> deleteHabitCompletion(String habitId, String date) async {
     final db = await database;
-    await db.delete('habit_completions',
-        where: 'habitId = ? AND date = ?', whereArgs: [habitId, date]);
+    await db.delete(
+      'habit_completions',
+      where: 'habitId = ? AND date = ?',
+      whereArgs: [habitId, date],
+    );
   }
 
   Future<List<HabitCompletion>> getCompletionsByDate(String date) async {
     final db = await database;
-    final maps = await db.query('habit_completions',
-        where: 'date = ?', whereArgs: [date]);
+    final maps = await db.query(
+      'habit_completions',
+      where: 'date = ?',
+      whereArgs: [date],
+    );
     return maps.map((m) => HabitCompletion.fromMap(m)).toList();
   }
 

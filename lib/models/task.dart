@@ -7,6 +7,7 @@ class Task {
   final int colorValue;
   final bool isPinned;
   final bool isHidden;
+  final bool isIndependent;
   final String? note; // 备注
   final DateTime createdAt;
 
@@ -19,6 +20,7 @@ class Task {
     this.colorValue = 0xFF42A5F5,
     this.isPinned = false,
     this.isHidden = false,
+    this.isIndependent = false,
     this.note,
     required this.createdAt,
   });
@@ -44,6 +46,7 @@ class Task {
       'colorValue': colorValue,
       'isPinned': isPinned ? 1 : 0,
       'isHidden': isHidden ? 1 : 0,
+      'isIndependent': isIndependent ? 1 : 0,
       'note': note,
       'createdAt': createdAt.millisecondsSinceEpoch,
     };
@@ -59,6 +62,7 @@ class Task {
       colorValue: map['colorValue'] ?? 0xFF42A5F5,
       isPinned: (map['isPinned'] ?? 0) == 1,
       isHidden: (map['isHidden'] ?? 0) == 1,
+      isIndependent: (map['isIndependent'] ?? 0) == 1,
       note: map['note'],
       createdAt: DateTime.fromMillisecondsSinceEpoch(map['createdAt']),
     );
@@ -72,6 +76,7 @@ class Task {
     int? colorValue,
     bool? isPinned,
     bool? isHidden,
+    bool? isIndependent,
     String? note,
     bool clearNote = false,
   }) {
@@ -84,6 +89,7 @@ class Task {
       colorValue: colorValue ?? this.colorValue,
       isPinned: isPinned ?? this.isPinned,
       isHidden: isHidden ?? this.isHidden,
+      isIndependent: isIndependent ?? this.isIndependent,
       note: clearNote ? null : (note ?? this.note),
       createdAt: createdAt,
     );

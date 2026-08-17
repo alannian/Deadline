@@ -104,19 +104,7 @@ class SettingsPage extends StatelessWidget {
                     lastDate: DateTime(2099),
                   );
                   if (picked != null) {
-                    if (!context.mounted) return;
-                    final reward = await _askReward(
-                      context,
-                      settings.deadlineReward,
-                    );
-                    if (reward == null || reward.trim().isEmpty) {
-                      if (!context.mounted) return;
-                      ScaffoldMessenger.of(
-                        context,
-                      ).showSnackBar(SnackBar(content: Text(s.rewardRequired)));
-                      return;
-                    }
-                    settings.setDeadlineWithReward(picked, reward);
+                    settings.setDeadline(picked);
                   }
                 },
               ),
@@ -249,42 +237,6 @@ class SettingsPage extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  Future<String?> _askReward(BuildContext context, String? initialReward) {
-    final s = S.read(context);
-    final ctrl = TextEditingController(text: initialReward ?? '');
-    return showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(s.setDeadlineReward),
-        content: SizedBox(
-          width: 420,
-          child: TextField(
-            controller: ctrl,
-            autofocus: true,
-            keyboardType: TextInputType.multiline,
-            textInputAction: TextInputAction.newline,
-            minLines: 5,
-            maxLines: 10,
-            decoration: InputDecoration(
-              hintText: s.rewardHint,
-              alignLabelWithHint: true,
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(s.cancel),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
-            child: Text(s.ok),
-          ),
-        ],
       ),
     );
   }

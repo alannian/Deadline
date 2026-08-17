@@ -20,6 +20,7 @@ class S {
 
   String get checklistMode => isCn ? '\u6e05\u5355' : 'Checklist';
   String get planningMode => isCn ? '\u89c4\u5212\u4efb\u52a1' : 'Plan tasks';
+  String get issuesMode => isCn ? '问题' : 'Issues';
 
   // ── 通用 ──
   String get cancel => isCn ? '取消' : 'Cancel';
@@ -41,13 +42,9 @@ class S {
   String get tasksTitle => isCn ? '短期任务' : 'Tasks';
   String get taskPageTitle => isCn ? '任务' : 'Tasks';
   String get tapToSetDeadline => isCn ? '点击设置截止日期' : 'Tap to set deadline';
-  String get setDeadlineReward => isCn ? '设置奖励' : 'Set reward';
-  String get rewardHint => isCn ? '完成后给自己的奖励' : 'Reward for finishing';
-  String get rewardRequired => isCn ? '请先填写奖励' : 'Please enter a reward first';
-  String get reward => isCn ? '奖励' : 'Reward';
   String get deadlineLocked => isCn
-      ? '截止天数已为 0，请重新设置截止日期和奖励后再编辑'
-      : 'Deadline is 0. Reset the deadline and reward before editing.';
+      ? '截止天数已为 0，请重新设置截止日期后再编辑'
+      : 'Deadline is 0. Reset the deadline before editing.';
   String get totalProgress => isCn ? '总进度' : 'Total progress';
   String get daysRemaining => isCn ? '天剩余' : 'days left';
   String deadlineDate(int month, int day) =>
@@ -82,6 +79,12 @@ class S {
   String unitRemainingLabel(String unit) => isCn ? '$unit剩余' : '$unit left';
   String get record => isCn ? '记录' : 'Log';
   String get editTask => isCn ? '编辑任务' : 'Edit Task';
+  String get independentTask => isCn ? '独立任务' : 'Independent task';
+  String get independentTaskHint => isCn
+      ? '始终保留在清单中，不计入总进度和时间统计'
+      : 'Always stays in the list and is excluded from progress and time totals';
+  String get makeIndependent => isCn ? '设为独立任务' : 'Make independent';
+  String get includeInProgress => isCn ? '计入总进度' : 'Include in progress';
   String get taskNoteHint => isCn ? '备注（可选）' : 'Note (optional)';
   String get saved => isCn ? '已保存' : 'Saved';
   String get selectMode => isCn ? '选择' : 'Select';
@@ -89,6 +92,20 @@ class S {
   String batchDeleteConfirm(int n) => isCn
       ? '确定要删除选中的 $n 个任务吗？所有记录也会被删除。'
       : 'Delete $n selected tasks? All records will be removed.';
+  String get noIssuesYet => isCn ? '还没有问题' : 'No issues yet';
+  String get tapToCreateIssue =>
+      isCn ? '点击右下角 + 记录一个问题' : 'Tap + to add an issue';
+  String get newIssue => isCn ? '新建问题' : 'New Issue';
+  String get editIssue => isCn ? '编辑问题' : 'Edit Issue';
+  String get issueTitleHint => isCn ? '问题' : 'Issue';
+  String get issueNoteHint =>
+      isCn ? '思考备注、原因、尝试过的方法...' : 'Thoughts, causes, attempts...';
+  String get issueThoughts => isCn ? '思考备注' : 'Thoughts';
+  String deleteIssueConfirm(String name) => isCn
+      ? '确定要删除「$name」吗？相关备注也会被删除。'
+      : 'Delete "$name"? Notes will be removed.';
+  String updatedAt(int month, int day, String time) =>
+      isCn ? '更新于 $month/$day $time' : 'Updated $month/$day $time';
   String get donation => isCn ? '打赏' : 'Donate';
   String get donationDesc =>
       isCn ? '\ud83d\ude04 做的不错，赏！' : '\ud83d\ude04 Great job, take my money!';

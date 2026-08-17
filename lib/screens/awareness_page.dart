@@ -17,9 +17,11 @@ class _AwarenessPageState extends State<AwarenessPage> {
   @override
   void initState() {
     super.initState();
+    final awarenessProvider = context.read<AwarenessProvider>();
+    final habitProvider = context.read<HabitProvider>();
     Future.microtask(() {
-      context.read<AwarenessProvider>().loadGoals();
-      context.read<HabitProvider>().loadHabits();
+      awarenessProvider.loadGoals();
+      habitProvider.loadHabits();
     });
   }
 
@@ -45,7 +47,8 @@ class _AwarenessPageState extends State<AwarenessPage> {
                   return ListView.separated(
                     padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
                     itemCount: provider.goals.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    separatorBuilder: (context, index) =>
+                        const Divider(height: 1),
                     itemBuilder: (context, index) {
                       final goal = provider.goals[index];
                       return ListTile(
@@ -64,10 +67,11 @@ class _AwarenessPageState extends State<AwarenessPage> {
                         title: Text(goal.title),
                         onTap: () => _showGoalDialog(context, goal: goal),
                         trailing: IconButton(
-                          icon: Icon(Icons.delete_outline_rounded,
-                              color: Colors.red[300]),
-                          onPressed: () =>
-                              provider.deleteGoal(goal.id),
+                          icon: Icon(
+                            Icons.delete_outline_rounded,
+                            color: Colors.red[300],
+                          ),
+                          onPressed: () => provider.deleteGoal(goal.id),
                         ),
                       );
                     },
@@ -76,7 +80,10 @@ class _AwarenessPageState extends State<AwarenessPage> {
               ),
             ),
           ),
-          Divider(height: 1, color: isDark ? Colors.grey[800] : Colors.grey[300]),
+          Divider(
+            height: 1,
+            color: isDark ? Colors.grey[800] : Colors.grey[300],
+          ),
           Expanded(
             child: _Section(
               title: s.habits,
@@ -90,11 +97,13 @@ class _AwarenessPageState extends State<AwarenessPage> {
                   return ListView.separated(
                     padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
                     itemCount: provider.habits.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    separatorBuilder: (context, index) =>
+                        const Divider(height: 1),
                     itemBuilder: (context, index) {
                       final habit = provider.habits[index];
-                      final done =
-                          provider.todayCompletions.containsKey(habit.id);
+                      final done = provider.todayCompletions.containsKey(
+                        habit.id,
+                      );
                       return ListTile(
                         contentPadding: EdgeInsets.zero,
                         leading: IconButton(
@@ -109,15 +118,18 @@ class _AwarenessPageState extends State<AwarenessPage> {
                         title: Text(
                           habit.name,
                           style: TextStyle(
-                            decoration:
-                                done ? TextDecoration.lineThrough : null,
+                            decoration: done
+                                ? TextDecoration.lineThrough
+                                : null,
                             color: done ? Colors.grey : null,
                           ),
                         ),
                         onTap: () => _showHabitDialog(context, habit: habit),
                         trailing: IconButton(
-                          icon: Icon(Icons.delete_outline_rounded,
-                              color: Colors.red[300]),
+                          icon: Icon(
+                            Icons.delete_outline_rounded,
+                            color: Colors.red[300],
+                          ),
                           onPressed: () => provider.removeHabit(habit.id),
                         ),
                       );
@@ -261,9 +273,7 @@ class _EmptyText extends StatelessWidget {
     return Center(
       child: Text(
         text,
-        style: TextStyle(
-          color: isDark ? Colors.grey[600] : Colors.grey[500],
-        ),
+        style: TextStyle(color: isDark ? Colors.grey[600] : Colors.grey[500]),
       ),
     );
   }

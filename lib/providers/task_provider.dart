@@ -33,6 +33,7 @@ class TaskProvider extends ChangeNotifier {
     required String unit,
     required double targetAmount,
     String? note,
+    bool isIndependent = false,
   }) async {
     final task = Task(
       id: _uuid.v4(),
@@ -40,6 +41,7 @@ class TaskProvider extends ChangeNotifier {
       unit: unit,
       targetAmount: targetAmount,
       note: note,
+      isIndependent: isIndependent,
       createdAt: DateTime.now(),
     );
     await _db.insertTask(task);
@@ -56,6 +58,13 @@ class TaskProvider extends ChangeNotifier {
   /// 切换隐藏
   Future<void> toggleHidden(Task task) async {
     final updated = task.copyWith(isHidden: !task.isHidden);
+    await _db.updateTask(updated);
+    await loadTasks();
+  }
+
+  /// 切换是否计入截止任务的总进度与锁定规则
+  Future<void> toggleIndependent(Task task) async {
+    final updated = task.copyWith(isIndependent: !task.isIndependent);
     await _db.updateTask(updated);
     await loadTasks();
   }
