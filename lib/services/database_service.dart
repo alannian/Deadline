@@ -7,6 +7,7 @@ import '../models/memo.dart';
 import '../models/habit.dart';
 import '../models/awareness_goal.dart';
 import '../models/task_issue.dart';
+import '../models/life_item.dart';
 
 class DatabaseService {
   static Database? _database;
@@ -26,7 +27,7 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 12,
+      version: 13,
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
     );
@@ -138,6 +139,14 @@ class DatabaseService {
         note TEXT DEFAULT '',
         createdAt INTEGER NOT NULL,
         updatedAt INTEGER NOT NULL
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE life_items (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        createdAt INTEGER NOT NULL
       )
     ''');
   }
@@ -387,6 +396,15 @@ class DatabaseService {
         'ALTER TABLE tasks ADD COLUMN isIndependent INTEGER DEFAULT 0',
       );
     }
+    if (oldVersion < 13) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS life_items (
+          id TEXT PRIMARY KEY,
+          title TEXT NOT NULL,
+          createdAt INTEGER NOT NULL
+        )
+      ''');
+    }
   }
 
   // ==================== TaskIssue CRUD ====================
@@ -402,7 +420,7 @@ class DatabaseService {
 
   Future<List<TaskIssue>> getTaskIssues() async {
     final db = await database;
-    final maps = await db.query('task_issues', orderBy: 'updatedAt DESC');
+    final maps = await db.query('task_issues', orderBy: 'createdAt DESC');
     return maps.map((map) => TaskIssue.fromMap(map)).toList();
   }
 
@@ -419,6 +437,38 @@ class DatabaseService {
   Future<void> deleteTaskIssue(String id) async {
     final db = await database;
     await db.delete('task_issues', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // ==================== LifeItem CRUD ====================
+
+  Future<void> insertLifeItem(LifeItem item) async {
+    final db = await database;
+    await db.insert(
+      'life_items',
+      item.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<List<LifeItem>> getLifeItems() async {
+    final db = await database;
+    final maps = await db.query('life_items', orderBy: 'createdAt ASC');
+    return maps.map(LifeItem.fromMap).toList();
+  }
+
+  Future<void> updateLifeItem(LifeItem item) async {
+    final db = await database;
+    await db.update(
+      'life_items',
+      item.toMap(),
+      where: 'id = ?',
+      whereArgs: [item.id],
+    );
+  }
+
+  Future<void> deleteLifeItem(String id) async {
+    final db = await database;
+    await db.delete('life_items', where: 'id = ?', whereArgs: [id]);
   }
 
   // ==================== AwarenessGoal CRUD ====================

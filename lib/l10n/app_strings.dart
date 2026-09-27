@@ -18,9 +18,9 @@ class S {
 
   bool get isCn => _lang == 'zh';
 
-  String get checklistMode => isCn ? '\u6e05\u5355' : 'Checklist';
+  String get checklistMode => isCn ? '待做清单' : 'To-do List';
   String get planningMode => isCn ? '\u89c4\u5212\u4efb\u52a1' : 'Plan tasks';
-  String get issuesMode => isCn ? '问题' : 'Issues';
+  String get issuesMode => isCn ? '待解决问题' : 'Unresolved Issues';
 
   // ── 通用 ──
   String get cancel => isCn ? '取消' : 'Cancel';
@@ -30,6 +30,10 @@ class S {
   String get ok => isCn ? '确定' : 'OK';
   String get save => isCn ? '已保存' : 'Saved';
   String get confirmDelete => isCn ? '确认删除' : 'Confirm Delete';
+  String get copyAll => isCn ? '复制全部' : 'Copy all';
+  String get copiedAllContent => isCn ? '已复制全部内容' : 'All content copied';
+  String get undo => isCn ? '撤销' : 'Undo';
+  String get redo => isCn ? '重做' : 'Redo';
 
   // ── 底部导航 ──
   String get navTasks => isCn ? '任务' : 'Tasks';
@@ -97,10 +101,18 @@ class S {
       isCn ? '点击右下角 + 记录一个问题' : 'Tap + to add an issue';
   String get newIssue => isCn ? '新建问题' : 'New Issue';
   String get editIssue => isCn ? '编辑问题' : 'Edit Issue';
+  String get untitledIssue => isCn ? '未命名问题' : 'Untitled issue';
   String get issueTitleHint => isCn ? '问题' : 'Issue';
   String get issueNoteHint =>
       isCn ? '思考备注、原因、尝试过的方法...' : 'Thoughts, causes, attempts...';
   String get issueThoughts => isCn ? '思考备注' : 'Thoughts';
+  String issueCreatedAt(int year, int month, int day, String time) =>
+      isCn ? '新建于 $year/$month/$day $time' : 'Created $year/$month/$day $time';
+  String issueDuration(String duration) =>
+      isCn ? '持续 $duration' : 'Open for $duration';
+  String durationMinutes(int value) => isCn ? '$value 分钟' : '$value min';
+  String durationHours(int value) => isCn ? '$value 小时' : '$value hr';
+  String durationDays(int value) => isCn ? '$value 天' : '$value days';
   String deleteIssueConfirm(String name) => isCn
       ? '确定要删除「$name」吗？相关备注也会被删除。'
       : 'Delete "$name"? Notes will be removed.';
@@ -192,6 +204,12 @@ class S {
   String get habitNameHint => isCn ? '习惯名称' : 'Habit name';
   String get noHabitsYet =>
       isCn ? '还没有习惯，点击 + 添加' : 'No habits yet, tap + to add';
+  String get life => isCn ? '生活' : 'Life';
+  String get addLifeItem => isCn ? '添加生活事项' : 'Add life item';
+  String get editLifeItem => isCn ? '编辑生活事项' : 'Edit life item';
+  String get lifeItemHint => isCn ? '要处理的生活事项' : 'Life item';
+  String get noLifeItemsYet =>
+      isCn ? '还没有生活事项，点击 + 添加' : 'No life items yet, tap + to add';
   String get treeHealthy => isCn ? '🌳 茁壮成长' : '🌳 Thriving';
   String get treeGood => isCn ? '🌲 状态良好' : '🌲 Healthy';
   String get treeWilting => isCn ? '🌿 有些枯萎' : '🌿 Wilting';

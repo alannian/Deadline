@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../models/awareness_goal.dart';
-import '../models/habit.dart';
-import '../providers/awareness_provider.dart';
-import '../providers/habit_provider.dart';
 import '../l10n/app_strings.dart';
+import '../models/habit.dart';
+import '../models/life_item.dart';
+import '../providers/habit_provider.dart';
+import '../providers/life_item_provider.dart';
 
 class AwarenessPage extends StatefulWidget {
   const AwarenessPage({super.key});
@@ -14,14 +14,16 @@ class AwarenessPage extends StatefulWidget {
 }
 
 class _AwarenessPageState extends State<AwarenessPage> {
+  bool _habitsExpanded = false;
+
   @override
   void initState() {
     super.initState();
-    final awarenessProvider = context.read<AwarenessProvider>();
     final habitProvider = context.read<HabitProvider>();
+    final lifeItemProvider = context.read<LifeItemProvider>();
     Future.microtask(() {
-      awarenessProvider.loadGoals();
       habitProvider.loadHabits();
+      lifeItemProvider.loadItems();
     });
   }
 
@@ -34,146 +36,111 @@ class _AwarenessPageState extends State<AwarenessPage> {
       appBar: AppBar(title: Text(s.awarenessTitle)),
       body: Column(
         children: [
-          Expanded(
-            child: _Section(
-              title: s.goals,
-              icon: Icons.flag_outlined,
-              onAdd: () => _showGoalDialog(context),
-              child: Consumer<AwarenessProvider>(
-                builder: (context, provider, _) {
-                  if (provider.goals.isEmpty) {
-                    return _EmptyText(text: s.noGoalsYet);
-                  }
-                  return ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-                    itemCount: provider.goals.length,
-                    separatorBuilder: (context, index) =>
-                        const Divider(height: 1),
-                    itemBuilder: (context, index) {
-                      final goal = provider.goals[index];
-                      return ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: SizedBox(
-                          width: 32,
-                          child: Text(
-                            '${index + 1}.',
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
+          if (_habitsExpanded)
+            Expanded(
+              child: _Section(
+                title: s.habits,
+                icon: Icons.check_circle_outline_rounded,
+                onAdd: () => _showHabitDialog(context),
+                onToggle: () => setState(() => _habitsExpanded = false),
+                isExpanded: true,
+                child: Consumer<HabitProvider>(
+                  builder: (context, provider, _) {
+                    if (provider.habits.isEmpty) {
+                      return _EmptyText(text: s.noHabitsYet);
+                    }
+                    return ListView.separated(
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+                      itemCount: provider.habits.length,
+                      separatorBuilder: (context, index) =>
+                          const Divider(height: 1),
+                      itemBuilder: (context, index) {
+                        final habit = provider.habits[index];
+                        final done = provider.todayCompletions.containsKey(
+                          habit.id,
+                        );
+                        return ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: IconButton(
+                            icon: Icon(
+                              done
+                                  ? Icons.check_circle_rounded
+                                  : Icons.radio_button_unchecked_rounded,
+                              color: done ? Colors.green : Colors.grey,
+                            ),
+                            onPressed: () => provider.toggleToday(habit.id),
+                          ),
+                          title: Text(
+                            habit.name,
+                            style: TextStyle(
+                              decoration: done
+                                  ? TextDecoration.lineThrough
+                                  : null,
+                              color: done ? Colors.grey : null,
                             ),
                           ),
-                        ),
-                        title: Text(goal.title),
-                        onTap: () => _showGoalDialog(context, goal: goal),
-                        trailing: IconButton(
-                          icon: Icon(
-                            Icons.delete_outline_rounded,
-                            color: Colors.red[300],
+                          onTap: () => _showHabitDialog(context, habit: habit),
+                          trailing: IconButton(
+                            icon: Icon(
+                              Icons.delete_outline_rounded,
+                              color: Colors.red[300],
+                            ),
+                            onPressed: () => provider.removeHabit(habit.id),
                           ),
-                          onPressed: () => provider.deleteGoal(goal.id),
-                        ),
-                      );
-                    },
-                  );
-                },
+                        );
+                      },
+                    );
+                  },
+                ),
               ),
             ),
-          ),
+          if (!_habitsExpanded)
+            _SectionHeader(
+              title: s.habits,
+              icon: Icons.check_circle_outline_rounded,
+              onAdd: () => _showHabitDialog(context),
+              onToggle: () => setState(() => _habitsExpanded = true),
+              isExpanded: false,
+            ),
           Divider(
             height: 1,
             color: isDark ? Colors.grey[800] : Colors.grey[300],
           ),
           Expanded(
             child: _Section(
-              title: s.habits,
-              icon: Icons.check_circle_outline_rounded,
-              onAdd: () => _showHabitDialog(context),
-              child: Consumer<HabitProvider>(
+              title: s.life,
+              icon: Icons.home_outlined,
+              onAdd: () => _showLifeItemDialog(context),
+              child: Consumer<LifeItemProvider>(
                 builder: (context, provider, _) {
-                  if (provider.habits.isEmpty) {
-                    return _EmptyText(text: s.noHabitsYet);
+                  if (provider.items.isEmpty) {
+                    return _EmptyText(text: s.noLifeItemsYet);
                   }
                   return ListView.separated(
                     padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-                    itemCount: provider.habits.length,
+                    itemCount: provider.items.length,
                     separatorBuilder: (context, index) =>
                         const Divider(height: 1),
                     itemBuilder: (context, index) {
-                      final habit = provider.habits[index];
-                      final done = provider.todayCompletions.containsKey(
-                        habit.id,
-                      );
+                      final item = provider.items[index];
                       return ListTile(
                         contentPadding: EdgeInsets.zero,
                         leading: IconButton(
-                          icon: Icon(
-                            done
-                                ? Icons.check_circle_rounded
-                                : Icons.radio_button_unchecked_rounded,
-                            color: done ? Colors.green : Colors.grey,
+                          tooltip: s.confirm,
+                          icon: const Icon(
+                            Icons.radio_button_unchecked_rounded,
+                            color: Colors.grey,
                           ),
-                          onPressed: () => provider.toggleToday(habit.id),
+                          onPressed: () => provider.completeItem(item.id),
                         ),
-                        title: Text(
-                          habit.name,
-                          style: TextStyle(
-                            decoration: done
-                                ? TextDecoration.lineThrough
-                                : null,
-                            color: done ? Colors.grey : null,
-                          ),
-                        ),
-                        onTap: () => _showHabitDialog(context, habit: habit),
-                        trailing: IconButton(
-                          icon: Icon(
-                            Icons.delete_outline_rounded,
-                            color: Colors.red[300],
-                          ),
-                          onPressed: () => provider.removeHabit(habit.id),
-                        ),
+                        title: Text(item.title),
+                        onTap: () => _showLifeItemDialog(context, item: item),
                       );
                     },
                   );
                 },
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showGoalDialog(BuildContext context, {AwarenessGoal? goal}) {
-    final s = S.read(context);
-    final ctrl = TextEditingController(text: goal?.title ?? '');
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(goal == null ? s.addGoal : s.editGoal),
-        content: TextField(
-          controller: ctrl,
-          autofocus: true,
-          decoration: InputDecoration(hintText: s.goalNameHint),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(s.cancel),
-          ),
-          TextButton(
-            onPressed: () {
-              final title = ctrl.text.trim();
-              if (title.isEmpty) return;
-              final provider = context.read<AwarenessProvider>();
-              if (goal == null) {
-                provider.addGoal(title);
-              } else {
-                provider.updateGoal(goal, title);
-              }
-              Navigator.pop(ctx);
-            },
-            child: Text(s.ok),
           ),
         ],
       ),
@@ -182,13 +149,13 @@ class _AwarenessPageState extends State<AwarenessPage> {
 
   void _showHabitDialog(BuildContext context, {Habit? habit}) {
     final s = S.read(context);
-    final ctrl = TextEditingController(text: habit?.name ?? '');
+    final controller = TextEditingController(text: habit?.name ?? '');
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(habit == null ? s.addHabit : s.habits),
         content: TextField(
-          controller: ctrl,
+          controller: controller,
           autofocus: true,
           decoration: InputDecoration(hintText: s.habitNameHint),
         ),
@@ -199,7 +166,7 @@ class _AwarenessPageState extends State<AwarenessPage> {
           ),
           TextButton(
             onPressed: () {
-              final name = ctrl.text.trim();
+              final name = controller.text.trim();
               if (name.isEmpty) return;
               final provider = context.read<HabitProvider>();
               if (habit == null) {
@@ -215,46 +182,71 @@ class _AwarenessPageState extends State<AwarenessPage> {
       ),
     );
   }
+
+  void _showLifeItemDialog(BuildContext context, {LifeItem? item}) {
+    final s = S.read(context);
+    final controller = TextEditingController(text: item?.title ?? '');
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(item == null ? s.addLifeItem : s.editLifeItem),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: InputDecoration(hintText: s.lifeItemHint),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(s.cancel),
+          ),
+          TextButton(
+            onPressed: () {
+              final title = controller.text.trim();
+              if (title.isEmpty) return;
+              final provider = context.read<LifeItemProvider>();
+              if (item == null) {
+                provider.addItem(title);
+              } else {
+                provider.updateItem(item, title);
+              }
+              Navigator.pop(ctx);
+            },
+            child: Text(s.ok),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _Section extends StatelessWidget {
-  final String title;
-  final IconData icon;
-  final VoidCallback onAdd;
-  final Widget child;
-
   const _Section({
     required this.title,
     required this.icon,
     required this.onAdd,
     required this.child,
+    this.onToggle,
+    this.isExpanded,
   });
+
+  final String title;
+  final IconData icon;
+  final VoidCallback onAdd;
+  final Widget child;
+  final VoidCallback? onToggle;
+  final bool? isExpanded;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 8, 6),
-          child: Row(
-            children: [
-              Icon(icon, size: 20),
-              const SizedBox(width: 8),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const Spacer(),
-              IconButton(
-                tooltip: title,
-                onPressed: onAdd,
-                icon: const Icon(Icons.add_circle_outline_rounded),
-              ),
-            ],
-          ),
+        _SectionHeader(
+          title: title,
+          icon: icon,
+          onAdd: onAdd,
+          onToggle: onToggle,
+          isExpanded: isExpanded,
         ),
         Expanded(child: child),
       ],
@@ -262,10 +254,72 @@ class _Section extends StatelessWidget {
   }
 }
 
-class _EmptyText extends StatelessWidget {
-  final String text;
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({
+    required this.title,
+    required this.icon,
+    required this.onAdd,
+    this.onToggle,
+    this.isExpanded,
+  });
 
+  final String title;
+  final IconData icon;
+  final VoidCallback onAdd;
+  final VoidCallback? onToggle;
+  final bool? isExpanded;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
+      child: Row(
+        children: [
+          Expanded(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(6),
+              onTap: onToggle,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                child: Row(
+                  children: [
+                    Icon(icon, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    if (onToggle != null) ...[
+                      const Spacer(),
+                      Icon(
+                        isExpanded == true
+                            ? Icons.expand_less_rounded
+                            : Icons.expand_more_rounded,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ),
+          IconButton(
+            tooltip: title,
+            onPressed: onAdd,
+            icon: const Icon(Icons.add_circle_outline_rounded),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyText extends StatelessWidget {
   const _EmptyText({required this.text});
+
+  final String text;
 
   @override
   Widget build(BuildContext context) {

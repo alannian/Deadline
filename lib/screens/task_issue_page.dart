@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../l10n/app_strings.dart';
 import '../models/task_issue.dart';
 import '../providers/task_issue_provider.dart';
-import '../l10n/app_strings.dart';
+import 'task_issue_edit_page.dart';
 
 class TaskIssuePage extends StatefulWidget {
   const TaskIssuePage({super.key, required this.onShowChecklist});
@@ -17,8 +18,7 @@ class _TaskIssuePageState extends State<TaskIssuePage> {
   @override
   void initState() {
     super.initState();
-    final provider = context.read<TaskIssueProvider>();
-    Future.microtask(provider.loadIssues);
+    Future.microtask(context.read<TaskIssueProvider>().loadIssues);
   }
 
   @override
@@ -42,7 +42,7 @@ class _TaskIssuePageState extends State<TaskIssuePage> {
             FloatingActionButton(
               heroTag: 'addIssue',
               tooltip: s.newIssue,
-              onPressed: () => _showIssueDialog(context),
+              onPressed: () => _openIssueEditor(context),
               child: const Icon(Icons.add_rounded),
             ),
           ],
@@ -50,15 +50,13 @@ class _TaskIssuePageState extends State<TaskIssuePage> {
       ),
       body: Consumer<TaskIssueProvider>(
         builder: (context, provider, _) {
-          if (provider.issues.isEmpty) {
-            return _buildEmptyState(context);
-          }
+          if (provider.issues.isEmpty) return _buildEmptyState(context);
 
           return ListView.builder(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
             itemCount: provider.issues.length,
             itemBuilder: (context, index) {
-              return _buildIssueCard(context, provider.issues[index]);
+              return _buildIssueRow(context, provider.issues[index]);
             },
           );
         },
@@ -100,87 +98,64 @@ class _TaskIssuePageState extends State<TaskIssuePage> {
     );
   }
 
-  Widget _buildIssueCard(BuildContext context, TaskIssue issue) {
+  Widget _buildIssueRow(BuildContext context, TaskIssue issue) {
     final s = S.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final time =
-        '${issue.updatedAt.hour}:${issue.updatedAt.minute.toString().padLeft(2, '0')}';
-    final note = issue.note.trim();
+    final createdTime =
+        '${issue.createdAt.hour.toString().padLeft(2, '0')}:'
+        '${issue.createdAt.minute.toString().padLeft(2, '0')}';
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      margin: const EdgeInsets.only(bottom: 8),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
       child: InkWell(
-        onTap: () => _showIssueDialog(context, issue: issue),
+        borderRadius: BorderRadius.circular(6),
+        onTap: () => _openIssueEditor(context, issue: issue),
         onLongPress: () => _confirmDeleteIssue(context, issue),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 34,
-                height: 34,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: const Color(0xFFFFB300).withValues(alpha: 0.15),
-                ),
-                child: const Icon(
-                  Icons.help_outline_rounded,
-                  size: 20,
-                  color: Color(0xFFFFB300),
-                ),
-              ),
-              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       issue.title,
-                      maxLines: 2,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    if (note.isNotEmpty) ...[
-                      const SizedBox(height: 6),
-                      Text(
-                        note,
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 13,
-                          height: 1.4,
-                          color: isDark ? Colors.grey[400] : Colors.grey[700],
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
                     Text(
-                      s.updatedAt(
-                        issue.updatedAt.month,
-                        issue.updatedAt.day,
-                        time,
+                      s.issueCreatedAt(
+                        issue.createdAt.year,
+                        issue.createdAt.month,
+                        issue.createdAt.day,
+                        createdTime,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 12,
-                        color: isDark ? Colors.grey[600] : Colors.grey[500],
+                        color: isDark ? Colors.grey[500] : Colors.grey[600],
                       ),
                     ),
                   ],
                 ),
               ),
-              IconButton(
-                icon: Icon(
-                  Icons.delete_outline_rounded,
-                  size: 20,
-                  color: Colors.red[300],
+              const SizedBox(width: 12),
+              Text(
+                s.issueDuration(_durationText(s, issue.createdAt)),
+                textAlign: TextAlign.right,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.red,
                 ),
-                onPressed: () => _confirmDeleteIssue(context, issue),
               ),
             ],
           ),
@@ -189,71 +164,24 @@ class _TaskIssuePageState extends State<TaskIssuePage> {
     );
   }
 
-  void _showIssueDialog(BuildContext context, {TaskIssue? issue}) {
-    final s = S.read(context);
-    final titleCtrl = TextEditingController(text: issue?.title ?? '');
-    final noteCtrl = TextEditingController(text: issue?.note ?? '');
+  String _durationText(S s, DateTime createdAt) {
+    final elapsed = DateTime.now().difference(createdAt);
+    if (elapsed.inDays > 0) return s.durationDays(elapsed.inDays);
+    if (elapsed.inHours > 0) return s.durationHours(elapsed.inHours);
+    return s.durationMinutes(elapsed.inMinutes.clamp(1, 59));
+  }
 
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(issue == null ? s.newIssue : s.editIssue),
-        content: SizedBox(
-          width: 420,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: titleCtrl,
-                  autofocus: true,
-                  decoration: InputDecoration(hintText: s.issueTitleHint),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: noteCtrl,
-                  decoration: InputDecoration(
-                    hintText: s.issueNoteHint,
-                    alignLabelWithHint: true,
-                  ),
-                  keyboardType: TextInputType.multiline,
-                  textInputAction: TextInputAction.newline,
-                  minLines: 6,
-                  maxLines: 12,
-                ),
-              ],
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(s.cancel),
-          ),
-          TextButton(
-            onPressed: () {
-              final title = titleCtrl.text.trim();
-              final note = noteCtrl.text.trim();
-              if (title.isEmpty) {
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(SnackBar(content: Text(s.fillAllFields)));
-                return;
-              }
-
-              final provider = context.read<TaskIssueProvider>();
-              if (issue == null) {
-                provider.addIssue(title: title, note: note);
-              } else {
-                provider.updateIssue(issue, title: title, note: note);
-              }
-              Navigator.pop(ctx);
-            },
-            child: Text(issue == null ? s.create : s.ok),
-          ),
-        ],
-      ),
+  Future<void> _openIssueEditor(
+    BuildContext context, {
+    TaskIssue? issue,
+  }) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => TaskIssueEditPage(issue: issue)),
     );
+    if (context.mounted) {
+      await context.read<TaskIssueProvider>().loadIssues();
+    }
   }
 
   void _confirmDeleteIssue(BuildContext context, TaskIssue issue) {

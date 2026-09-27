@@ -8,8 +8,8 @@ import 'providers/schedule_provider.dart';
 import 'providers/memo_provider.dart';
 import 'providers/settings_provider.dart';
 import 'providers/habit_provider.dart';
-import 'providers/awareness_provider.dart';
 import 'providers/task_issue_provider.dart';
+import 'providers/life_item_provider.dart';
 import 'theme/app_theme.dart';
 import 'screens/home_screen.dart';
 
@@ -35,10 +35,10 @@ class DeadlineApp extends StatelessWidget {
         ),
         ChangeNotifierProvider(create: (_) => MemoProvider()..loadFolders()),
         ChangeNotifierProvider(create: (_) => HabitProvider()..loadHabits()),
-        ChangeNotifierProvider(create: (_) => AwarenessProvider()..loadGoals()),
         ChangeNotifierProvider(
           create: (_) => TaskIssueProvider()..loadIssues(),
         ),
+        ChangeNotifierProvider(create: (_) => LifeItemProvider()..loadItems()),
       ],
       child: Consumer<SettingsProvider>(
         builder: (context, settings, child) {

@@ -15,7 +15,7 @@ class TaskIssueProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> addIssue({required String title, String note = ''}) async {
+  Future<TaskIssue> addIssue({required String title, String note = ''}) async {
     final now = DateTime.now();
     final issue = TaskIssue(
       id: _uuid.v4(),
@@ -26,9 +26,10 @@ class TaskIssueProvider extends ChangeNotifier {
     );
     await _db.insertTaskIssue(issue);
     await loadIssues();
+    return issue;
   }
 
-  Future<void> updateIssue(
+  Future<TaskIssue> updateIssue(
     TaskIssue issue, {
     required String title,
     required String note,
@@ -40,6 +41,7 @@ class TaskIssueProvider extends ChangeNotifier {
     );
     await _db.updateTaskIssue(updated);
     await loadIssues();
+    return updated;
   }
 
   Future<void> deleteIssue(String id) async {
